@@ -36,14 +36,16 @@ export async function fetchRouteDistance(
   originLat: number, originLng: number,
   destLat: number, destLng: number
 ): Promise<RouteResult> {
-  const { data: { session } } = await supabase.auth.getSession();
-  if (!session) return { ok: false, error: 'unauthorized', message: 'Please sign in before calculating delivery.' };
+  // Try Edge Function (needs auth) but fall through to Haversine if unavailable
   try {
-    const { data, error } = await supabase.functions.invoke('route-distance', {
-      body: { originLat, originLng, destLat, destLng },
-    });
-    if (!error && data && !data.error) {
-      return { ok: true, distance_km: data.distance_km, duration_sec: data.duration_sec, provider: 'google' };
+    const { data: { session } } = await supabase.auth.getSession();
+    if (session) {
+      const { data, error } = await supabase.functions.invoke('route-distance', {
+        body: { originLat, originLng, destLat, destLng },
+      });
+      if (!error && data && !data.error) {
+        return { ok: true, distance_km: data.distance_km, duration_sec: data.duration_sec, provider: 'google' };
+      }
     }
   } catch { /* Edge Function unreachable — fall through to estimate */ }
   const km = haversineKm(originLat, originLng, destLat, destLng);

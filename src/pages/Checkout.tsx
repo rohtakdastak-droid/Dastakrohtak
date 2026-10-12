@@ -1,11 +1,35 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { MapPin, AlertTriangle, RefreshCw, Navigation, Shield, ArrowRight } from 'lucide-react';
+import { MapPin, AlertTriangle, RefreshCw, Navigation, Shield, ArrowRight, Crosshair } from 'lucide-react';
+import { MapContainer, TileLayer, Marker, useMapEvents, useMap } from 'react-leaflet';
+import L from 'leaflet';
+import 'leaflet/dist/leaflet.css';
 import { useCart } from '../lib/cart';
 import { calcDeliveryFeePaise, formatRupees } from '../lib/deliveryFee';
 import { supabase, type Vendor } from '../lib/supabase';
 import { useSession } from '../lib/auth';
 import { fetchRouteDistance, placeOrder } from '../lib/routing';
+
+// Fix default marker icon (Leaflet + bundler issue)
+delete (L.Icon.Default.prototype as any)._getIconUrl;
+L.Icon.Default.mergeOptions({
+  iconRetinaUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/images/marker-icon-2x.png',
+  iconUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/images/marker-icon.png',
+  shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/images/marker-shadow.png',
+});
+
+function MapClickHandler({ onMove }: { onMove: (lat: number, lng: number) => void }) {
+  useMapEvents({
+    click(e) { onMove(e.latlng.lat, e.latlng.lng); },
+  });
+  return null;
+}
+
+function FlyTo({ lat, lng }: { lat: number; lng: number }) {
+  const map = useMap();
+  useEffect(() => { map.flyTo([lat, lng], 16, { duration: 0.8 }); }, [map, lat, lng]);
+  return null;
+}
 
 export default function Checkout() {
   const cart = useCart();
@@ -16,11 +40,13 @@ export default function Checkout() {
   const [lat, setLat] = useState<number | null>(null);
   const [lng, setLng] = useState<number | null>(null);
   const [distance, setDistance] = useState<number | null>(null);
-  const [provider, setProvider] = useState<'google' | 'estimate' | null>(null);
+  const [, setProvider] = useState<'google' | 'estimate' | null>(null);
   const [routing, setRouting] = useState(false);
   const [routeErr, setRouteErr] = useState<string | null>(null);
   const [placing, setPlacing] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [mapReady, setMapReady] = useState(false);
+  const mapRef = useRef<L.Map | null>(null);
 
   useEffect(() => {
     if (!cart.vendorId) return;
@@ -40,13 +66,7 @@ export default function Checkout() {
     } else {
       setDistance(null);
       setProvider(null);
-      setRouteErr(
-        r.error === 'routing_not_configured'
-          ? 'Delivery routing is not configured yet. Please contact support.'
-          : r.error === 'out_of_service_area'
-            ? 'This address is outside the service area.'
-            : r.message ?? 'Could not compute route. Please retry.'
-      );
+      setRouteErr(r.message ?? 'Could not compute route. Please retry.');
     }
   }
 
@@ -59,6 +79,16 @@ export default function Checkout() {
   const subtotal = cart.subtotalPaise();
   const total = subtotal + (feePaise ?? 0);
 
+  function handleMapMove(newLat: number, newLng: number) {
+    setLat(newLat);
+    setLng(newLng);
+    const coordStr = `${newLat.toFixed(5)}, ${newLng.toFixed(5)}`;
+    if (!addr || addr.match(/^\d+\.\d+,\s*\d+\.\d+$/)) {
+      setAddr(coordStr);
+      localStorage.setItem('dastak.address', coordStr);
+    }
+  }
+
   function useMyLocation() {
     if (!('geolocation' in navigator)) {
       setError('Location not supported. Enter address manually.');
@@ -66,12 +96,17 @@ export default function Checkout() {
     }
     navigator.geolocation.getCurrentPosition(
       (pos) => {
-        setLat(pos.coords.latitude);
-        setLng(pos.coords.longitude);
-        setAddr((prev) => prev || `${pos.coords.latitude.toFixed(5)}, ${pos.coords.longitude.toFixed(5)}`);
-        localStorage.setItem('dastak.address', addr || `${pos.coords.latitude.toFixed(5)}, ${pos.coords.longitude.toFixed(5)}`);
+        const newLat = pos.coords.latitude;
+        const newLng = pos.coords.longitude;
+        setLat(newLat);
+        setLng(newLng);
+        const coordStr = `${newLat.toFixed(5)}, ${newLng.toFixed(5)}`;
+        if (!addr || addr.match(/^\d+\.\d+,\s*\d+\.\d+$/)) {
+          setAddr(coordStr);
+          localStorage.setItem('dastak.address', coordStr);
+        }
       },
-      () => setError('Could not get your location. Please enter address manually.')
+      () => setError('Could not get your location. Tap on the map to set it.')
     );
   }
 
@@ -83,7 +118,7 @@ export default function Checkout() {
     }
     if (!cart.vendorId) return;
     if (lat == null || lng == null) {
-      setError('Please set your delivery location.');
+      setError('Please set your delivery location on the map.');
       return;
     }
     if (routeErr) {
@@ -104,21 +139,17 @@ export default function Checkout() {
     setPlacing(false);
 
     if (!res.ok) {
-      setError(
-        res.error === 'routing_not_configured'
-          ? 'Delivery routing is not configured. Please contact support.'
-          : res.error === 'routing_failed'
-            ? 'Could not compute the delivery route. Please retry.'
-            : res.error === 'out_of_service_area'
-              ? 'This address is outside the service area.'
-              : res.message ?? 'Order could not be placed. Please try again.'
-      );
+      setError(res.message ?? 'Order could not be placed. Please try again.');
       return;
     }
 
     cart.clear();
     navigate(`/orders/${res.order_id}`);
   }
+
+  // Default center: Rohtak or user's last location
+  const defaultLat = lat ?? 28.8955;
+  const defaultLng = lng ?? 76.6066;
 
   if (cart.items.length === 0) {
     return (
@@ -133,85 +164,125 @@ export default function Checkout() {
   }
 
   return (
-    <div className="page-enter p-4 pb-28">
-      <h1 className="text-xl font-bold">Checkout</h1>
+    <div className="page-enter px-4 pb-28 pt-4">
+      <h1 className="text-lg font-bold">Checkout</h1>
       {vendor && (
-        <div className="mt-1 flex items-center gap-2 text-xs text-neutral-500">
+        <div className="mt-0.5 flex items-center gap-1.5 text-xs text-neutral-500">
           <div className="h-1.5 w-1.5 rounded-full bg-brand-500" />
           {vendor.name}
         </div>
       )}
 
-      {/* Delivery address */}
-      <div className="card mt-5 p-5 animate-slide-up" style={{ animationDelay: '0ms' }}>
-        <div className="flex items-center gap-2 text-sm font-bold">
-          <MapPin size={16} className="text-brand-500" /> Delivery address
-        </div>
-        <input
-          className="input mt-3"
-          placeholder="Enter full address"
-          value={addr}
-          onChange={(e) => {
-            setAddr(e.target.value);
-            localStorage.setItem('dastak.address', e.target.value);
-          }}
-        />
-        <button onClick={useMyLocation} className="btn-outline mt-3 w-full">
-          <Navigation size={14} /> Use my current location
-        </button>
-        {lat != null && lng != null && (
-          <div className="mt-2 flex items-center gap-1 text-xs text-emerald-600">
-            <div className="h-1.5 w-1.5 rounded-full bg-emerald-500" />
-            Location set: {lat.toFixed(5)}, {lng.toFixed(5)}
-          </div>
-        )}
-      </div>
+      {/* Delivery location — map + compact address */}
+      <div className="card mt-4 overflow-hidden animate-slide-up" style={{ animationDelay: '0ms' }}>
+        <div className="relative h-48 w-full bg-neutral-100 dark:bg-neutral-800">
+          <MapContainer
+            center={[defaultLat, defaultLng]}
+            zoom={14}
+            className="h-full w-full z-0"
+            zoomControl={false}
+            attributionControl={false}
+            ref={mapRef as any}
+            whenReady={() => setMapReady(true)}
+          >
+            <TileLayer url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" />
+            <MapClickHandler onMove={handleMapMove} />
+            {lat != null && lng != null && (
+              <>
+                <Marker position={[lat, lng]} />
+                <FlyTo lat={lat} lng={lng} />
+              </>
+            )}
+          </MapContainer>
 
-      {/* Bill */}
-      <div className="card mt-4 p-5 animate-slide-up" style={{ animationDelay: '80ms', animationFillMode: 'backwards' }}>
-        <div className="flex items-center justify-between">
-          <div className="text-xs font-bold uppercase tracking-widest text-neutral-400">Bill summary</div>
-          {routing && (
-            <div className="flex items-center gap-1 text-xs text-brand-500">
-              <RefreshCw size={12} className="animate-spin" /> Computing route…
+          {/* Locate me floating button */}
+          <button
+            onClick={useMyLocation}
+            className="absolute bottom-3 right-3 z-[500] flex h-9 w-9 items-center justify-center rounded-full bg-white shadow-lg transition active:scale-90 dark:bg-neutral-800"
+            title="Use my location"
+          >
+            <Crosshair size={16} className="text-brand-600" />
+          </button>
+
+          {!lat && !mapReady && (
+            <div className="absolute inset-0 flex items-center justify-center bg-neutral-100/80 dark:bg-neutral-800/80">
+              <span className="text-xs text-neutral-500">Loading map…</span>
             </div>
           )}
         </div>
 
-        <div className="mt-3 space-y-2">
+        <div className="px-4 py-3">
+          <div className="flex items-center gap-2 text-xs font-semibold text-neutral-500">
+            <MapPin size={13} className="text-brand-500" /> Delivery address
+          </div>
+          <input
+            className="mt-1.5 w-full rounded-xl border border-neutral-200 bg-neutral-50 px-3 py-2 text-sm outline-none transition focus:border-brand-400 focus:ring-2 focus:ring-brand-100 dark:border-neutral-700 dark:bg-neutral-800 dark:focus:ring-brand-900"
+            placeholder="Full address or tap map"
+            value={addr}
+            onChange={(e) => {
+              setAddr(e.target.value);
+              localStorage.setItem('dastak.address', e.target.value);
+            }}
+          />
+          {lat != null && lng != null && (
+            <div className="mt-1.5 flex items-center gap-1 text-[11px] text-emerald-600">
+              <div className="h-1 w-1 rounded-full bg-emerald-500" />
+              {lat.toFixed(5)}, {lng.toFixed(5)}
+            </div>
+          )}
+          {!lat && (
+            <div className="mt-1.5 text-[11px] text-neutral-400">
+              Tap on the map or use <Navigation size={10} className="inline" /> to set location
+            </div>
+          )}
+        </div>
+      </div>
+
+      {/* Bill */}
+      <div className="card mt-3 p-4 animate-slide-up" style={{ animationDelay: '80ms', animationFillMode: 'backwards' }}>
+        <div className="flex items-center justify-between">
+          <div className="text-[10px] font-bold uppercase tracking-widest text-neutral-400">Bill summary</div>
+          {routing && (
+            <div className="flex items-center gap-1 text-[11px] text-brand-500">
+              <RefreshCw size={11} className="animate-spin" /> Computing…
+            </div>
+          )}
+        </div>
+
+        <div className="mt-2 space-y-1.5">
           <Row k="Items subtotal" v={formatRupees(subtotal)} />
           <Row
-            k={distance != null ? `Delivery (${distance.toFixed(1)} km · ${provider ?? ''})` : 'Delivery fee'}
+            k={distance != null ? `Delivery (${distance.toFixed(1)} km)` : 'Delivery fee'}
             v={feePaise == null ? '—' : formatRupees(feePaise)}
           />
-          <div className="border-t border-neutral-100 pt-2 dark:border-neutral-800" />
+          <div className="border-t border-neutral-100 pt-1.5 dark:border-neutral-800" />
           <Row k={<span className="font-bold text-neutral-900 dark:text-neutral-100">Total</span>} v={<span className="text-base font-bold text-neutral-900 dark:text-neutral-100">{formatRupees(total)}</span>} />
         </div>
 
         {routeErr && (
-          <div className="mt-4 flex items-start gap-2 rounded-2xl bg-red-50 p-3 text-xs text-red-700 dark:bg-red-500/10 dark:text-red-200">
-            <AlertTriangle size={14} className="mt-0.5 shrink-0" />
+          <div className="mt-3 flex items-start gap-2 rounded-xl bg-red-50 p-2.5 text-xs text-red-700 dark:bg-red-500/10 dark:text-red-200">
+            <AlertTriangle size={13} className="mt-0.5 shrink-0" />
             <div className="flex-1">
               {routeErr}
               <button onClick={recalcRoute} className="ml-2 inline-flex items-center gap-1 font-bold underline">
-                <RefreshCw size={12} /> Retry
+                <RefreshCw size={11} /> Retry
               </button>
             </div>
           </div>
         )}
 
-        <div className="mt-3 flex items-start gap-2 rounded-2xl bg-amber-50/80 p-3 text-xs text-amber-700 dark:bg-amber-500/10 dark:text-amber-200">
-          <Shield size={14} className="mt-0.5 shrink-0" />
-          Prepaid only. The delivery fee is recomputed server-side for accuracy.
+        <div className="mt-2.5 flex items-start gap-2 rounded-xl bg-amber-50/80 p-2.5 text-[11px] text-amber-700 dark:bg-amber-500/10 dark:text-amber-200">
+          <Shield size={12} className="mt-0.5 shrink-0" />
+          Prepaid only. Delivery fee recomputed server-side.
         </div>
       </div>
 
       {error && (
-        <div className="mt-4 animate-scale-in rounded-2xl bg-red-50 p-4 text-sm text-red-700 dark:bg-red-500/10 dark:text-red-200">{error}</div>
+        <div className="mt-3 animate-scale-in rounded-xl bg-red-50 p-3 text-sm text-red-700 dark:bg-red-500/10 dark:text-red-200">{error}</div>
       )}
 
       <button
-        className="btn-primary mt-5 w-full"
+        className="btn-primary mt-4 w-full"
         disabled={placing || routing || !!routeErr || feePaise == null}
         onClick={place}
       >
