@@ -73,24 +73,33 @@ export async function placeOrder(input: {
   } catch { /* Edge Function not deployed */ }
 
   // Fallback: compute distance client-side and insert order directly
-  const { data: vendor } = await supabase.from('vendors').select('latitude, longitude').eq('id', input.vendor_id).single();
+  const { data: vendor } = await supabase.from('vendors').select('latitude, longitude, category').eq('id', input.vendor_id).single();
   if (!vendor) return { ok: false, error: 'vendor_not_found', message: 'Restaurant not found.' };
 
   const km = haversineKm(vendor.latitude, vendor.longitude, input.dest_lat, input.dest_lng);
+  const distKm = Math.round(km * 10) / 10;
   const { calcDeliveryFeePaise } = await import('./deliveryFee');
   const feePaise = calcDeliveryFeePaise(km);
 
-  // Fetch product prices to compute total server-side
   const productIds = input.items.map((i) => i.product_id);
-  const { data: products } = await supabase.from('products').select('id, price_paise, sale_price_paise').in('id', productIds);
+  const { data: products } = await supabase.from('products').select('id, name, price_paise, sale_price_paise').in('id', productIds);
   if (!products) return { ok: false, error: 'products_not_found', message: 'Could not verify product prices.' };
 
-  const priceMap = new Map(products.map((p: any) => [p.id, p.sale_price_paise ?? p.price_paise]));
-  let itemsTotalPaise = 0;
-  const orderItems = input.items.map((i) => {
-    const unitPrice = priceMap.get(i.product_id) ?? 0;
-    itemsTotalPaise += unitPrice * i.quantity;
-    return { product_id: i.product_id, quantity: i.quantity, unit_price_paise: unitPrice, options: i.options ?? [] };
+  const prodMap = new Map(products.map((p: any) => [p.id, p]));
+  let itemsSubtotalPaise = 0;
+  const orderItemRows = input.items.map((i) => {
+    const prod = prodMap.get(i.product_id);
+    const unitPrice = prod ? (prod.sale_price_paise ?? prod.price_paise) : 0;
+    const lineTotal = unitPrice * i.quantity;
+    itemsSubtotalPaise += lineTotal;
+    return {
+      product_id: i.product_id,
+      product_name: prod?.name ?? 'Unknown',
+      unit_price_paise: unitPrice,
+      quantity: i.quantity,
+      options: i.options ?? [],
+      line_total_paise: lineTotal,
+    };
   });
 
   const { data: { session } } = await supabase.auth.getSession();
@@ -99,22 +108,29 @@ export async function placeOrder(input: {
   const { data: order, error: insertErr } = await supabase.from('orders').insert({
     customer_id: session.user.id,
     vendor_id: input.vendor_id,
+    category: vendor.category ?? 'restaurant',
     status: 'pending',
-    items_total_paise: itemsTotalPaise,
+    items_subtotal_paise: itemsSubtotalPaise,
     delivery_fee_paise: feePaise,
-    grand_total_paise: itemsTotalPaise + feePaise,
-    dest_address: input.dest_address,
-    dest_lat: input.dest_lat,
-    dest_lng: input.dest_lng,
-    distance_km: Math.round(km * 10) / 10,
-    route_provider: 'estimate',
+    delivery_distance_km: distKm,
+    delivery_route_provider: 'estimate',
+    total_payable_paise: itemsSubtotalPaise + feePaise,
+    destination_address: input.dest_address,
+    destination_lat: input.dest_lat,
+    destination_lng: input.dest_lng,
     customer_note: input.customer_note ?? null,
-    items: orderItems,
   }).select('id').single();
 
   if (insertErr || !order) {
     return { ok: false, error: 'insert_failed', message: insertErr?.message ?? 'Could not create order.' };
   }
 
-  return { ok: true, order_id: order.id, distance_km: Math.round(km * 10) / 10, provider: 'estimate' };
+  // Insert order items into separate table
+  if (orderItemRows.length > 0) {
+    await supabase.from('order_items').insert(
+      orderItemRows.map((r) => ({ ...r, order_id: order.id }))
+    );
+  }
+
+  return { ok: true, order_id: order.id, distance_km: distKm, provider: 'estimate' };
 }
