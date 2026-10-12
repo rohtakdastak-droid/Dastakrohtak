@@ -11,3 +11,12 @@ dist-ssr
 .idea
 coverage
 .claude
+
+.vercel
+.env*.local
+*.tsbuildinfo
+supabase/.temp/
+release-artifacts/
+android/key.properties
+*.keystore
+*.jks

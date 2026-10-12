@@ -10,7 +10,7 @@ if (!url || !anon) {
 }
 
 export const supabase = createClient(url || 'http://localhost', anon || 'anon', {
-  auth: { persistSession: true, autoRefreshToken: true },
+  auth: { persistSession: true, autoRefreshToken: true, flowType: 'pkce' },
 });
 
 export type Vendor = {

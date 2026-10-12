@@ -16,7 +16,7 @@ export default function Checkout() {
   const [lat, setLat] = useState<number | null>(null);
   const [lng, setLng] = useState<number | null>(null);
   const [distance, setDistance] = useState<number | null>(null);
-  const [provider, setProvider] = useState<'google' | null>(null);
+  const [provider, setProvider] = useState<'google' | 'estimate' | null>(null);
   const [routing, setRouting] = useState(false);
   const [routeErr, setRouteErr] = useState<string | null>(null);
   const [placing, setPlacing] = useState(false);

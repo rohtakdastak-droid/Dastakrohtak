@@ -72,6 +72,8 @@ Deno.serve(async (req) => {
     global: { headers: { Authorization: auth } },
     auth: { persistSession: false, autoRefreshToken: false },
   });
+  const { data: identity, error: authError } = await supabase.auth.getUser(auth.slice(7));
+  if (authError || !identity.user) return json({ error: 'unauthorized' }, { status: 401 });
 
   let payload: any;
   try { payload = await req.json(); } catch { return json({ error: 'bad_json' }, { status: 400 }); }
@@ -107,7 +109,7 @@ Deno.serve(async (req) => {
   // Server-side routing. If Google isn't configured, we refuse rather than
   // silently falling back — the spec requires the user retry or re-enter the
   // address rather than paying based on an invented distance.
-  const key = Deno.env.get('GOOGLE_MAPS_API_KEY');
+  const key = Deno.env.get('GOOGLE_MAPS_API_KEY') || Deno.env.get('GOOGLE_ROUTES_API_KEY');
   let km: number | null = null;
   let provider = 'google';
   if (key) {

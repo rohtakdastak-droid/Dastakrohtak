@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useParams, useLocation, Link } from 'react-router-dom';
-import { ArrowLeft, Leaf, Plus, Minus, Clock, MapPin, Star, ShoppingBag } from 'lucide-react';
+import { ArrowLeft, Leaf, Drumstick, Plus, Minus, Clock, MapPin, Star, ShoppingBag } from 'lucide-react';
 import { supabase, type Vendor as V, type Product } from '../lib/supabase';
 import { formatRupees } from '../lib/deliveryFee';
 import { useCart } from '../lib/cart';
@@ -10,7 +10,8 @@ export default function Vendor() {
   const location = useLocation() as { state?: { vegOnly?: boolean } };
   const [vendor, setVendor] = useState<V | null>(null);
   const [products, setProducts] = useState<Product[]>([]);
-  const [vegOnly, setVegOnly] = useState(!!location.state?.vegOnly);
+  type DietFilter = 'all' | 'veg' | 'non_veg';
+  const [dietFilter, setDietFilter] = useState<DietFilter>(location.state?.vegOnly ? 'veg' : 'all');
   const [loading, setLoading] = useState(true);
   const cart = useCart();
 
@@ -27,7 +28,11 @@ export default function Vendor() {
     })();
   }, [id]);
 
-  const shown = products.filter((p) => (vegOnly ? p.diet === 'veg' : true));
+  const shown = products.filter((p) => {
+    if (dietFilter === 'veg') return p.diet === 'veg';
+    if (dietFilter === 'non_veg') return p.diet === 'non_veg' || p.diet === 'egg';
+    return true;
+  });
 
   if (loading) {
     return (
@@ -77,14 +82,24 @@ export default function Vendor() {
         {/* Filters */}
         <div className="mt-4 flex items-center gap-2">
           <button
-            onClick={() => setVegOnly((v) => !v)}
+            onClick={() => setDietFilter((f) => f === 'veg' ? 'all' : 'veg')}
             className={`inline-flex items-center gap-2 rounded-full border px-4 py-2 text-xs font-semibold transition-all ${
-              vegOnly
+              dietFilter === 'veg'
                 ? 'border-emerald-500 bg-emerald-50 text-emerald-700 shadow-sm dark:bg-emerald-500/10'
                 : 'border-neutral-200 text-neutral-600 dark:border-neutral-800 dark:text-neutral-400'
             }`}
           >
             <Leaf size={14} /> Pure Veg
+          </button>
+          <button
+            onClick={() => setDietFilter((f) => f === 'non_veg' ? 'all' : 'non_veg')}
+            className={`inline-flex items-center gap-2 rounded-full border px-4 py-2 text-xs font-semibold transition-all ${
+              dietFilter === 'non_veg'
+                ? 'border-red-500 bg-red-50 text-red-700 shadow-sm dark:bg-red-500/10'
+                : 'border-neutral-200 text-neutral-600 dark:border-neutral-800 dark:text-neutral-400'
+            }`}
+          >
+            <Drumstick size={14} /> Non Veg
           </button>
           <div className="text-xs text-neutral-400">{shown.length} item{shown.length !== 1 ? 's' : ''}</div>
         </div>

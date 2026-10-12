@@ -11,6 +11,7 @@
 //   supabase functions deploy route-distance
 
 // deno-lint-ignore-file no-explicit-any
+import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.45.4';
 const CORS = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
@@ -32,7 +33,10 @@ Deno.serve(async (req) => {
   const auth = req.headers.get('Authorization') ?? '';
   if (!auth.startsWith('Bearer ')) return json({ error: 'unauthorized' }, { status: 401 });
 
-  const key = Deno.env.get('GOOGLE_MAPS_API_KEY');
+  const client = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_ANON_KEY')!);
+  const { data: identity, error: authError } = await client.auth.getUser(auth.slice(7));
+  if (authError || !identity.user) return json({ error: 'unauthorized', message: 'Please sign in to calculate delivery.' }, { status: 401 });
+  const key = Deno.env.get('GOOGLE_MAPS_API_KEY') || Deno.env.get('GOOGLE_ROUTES_API_KEY');
   if (!key) {
     return json({ error: 'routing_not_configured', provider: null }, { status: 503 });
   }

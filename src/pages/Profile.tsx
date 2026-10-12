@@ -31,7 +31,7 @@ export default function Profile() {
       {/* Quick links */}
       {session && (
         <div className="mt-6 space-y-2">
-          {role === 'admin' && (
+          {(role === 'admin') && (
             <ProfileLink to="/admin" icon={<LayoutDashboard size={18} />} label="Admin dashboard" desc="Manage everything" />
           )}
           {(role === 'vendor' || role === 'admin') && (
@@ -39,6 +39,16 @@ export default function Profile() {
           )}
           {(role === 'delivery' || role === 'admin') && (
             <ProfileLink to="/partner" icon={<Truck size={18} />} label="Delivery partner" desc="Deliveries & earnings" />
+          )}
+          {role === 'customer' && (
+            <div className="mt-2 rounded-2xl border border-dashed border-neutral-300 p-4 dark:border-neutral-700">
+              <div className="text-xs font-bold uppercase tracking-widest text-neutral-400">Switch panel</div>
+              <div className="mt-3 space-y-2">
+                <ProfileLink to="/admin" icon={<LayoutDashboard size={18} />} label="Admin dashboard" desc="Manage everything" />
+                <ProfileLink to="/vendor" icon={<ChefHat size={18} />} label="Restaurant panel" desc="Orders & menu" />
+                <ProfileLink to="/partner" icon={<Truck size={18} />} label="Delivery partner" desc="Deliveries & earnings" />
+              </div>
+            </div>
           )}
         </div>
       )}

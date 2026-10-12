@@ -1,31 +1,60 @@
 import { supabase } from './supabase';
 
+function haversineKm(lat1: number, lon1: number, lat2: number, lon2: number): number {
+  const R = 6371;
+  const dLat = (lat2 - lat1) * Math.PI / 180;
+  const dLon = (lon2 - lon1) * Math.PI / 180;
+  const a = Math.sin(dLat / 2) ** 2 +
+    Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) * Math.sin(dLon / 2) ** 2;
+  return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a)) * 1.3;
+}
+
+async function functionError(error: { message: string; context?: Response }) {
+  const messages: Record<string, string> = {
+    unauthorized: 'Please sign in again to calculate delivery.',
+    routing_not_configured: 'Delivery routing is not configured. Please contact support.',
+    no_route: 'No driving route found. Please check your delivery location.',
+    routing_failed: 'The routing service is unavailable. Please retry shortly.',
+    out_of_service_area: 'This restaurant does not deliver to your location.',
+  };
+  try {
+    const body = await error.context?.json();
+    if (body?.error && messages[body.error]) return messages[body.error];
+    if (error.context?.status === 401) return messages.unauthorized;
+    if (error.context?.status === 404) return 'Delivery service is not deployed yet. Please contact support.';
+    if (body?.message) return String(body.message);
+  } catch { /* Network or non-JSON response */ }
+  return null;
+}
+
 export type RouteResult =
-  | { ok: true; distance_km: number; duration_sec: number | null; provider: 'google' }
+  | { ok: true; distance_km: number; duration_sec: number | null; provider: 'google' | 'estimate' }
   | { ok: false; error: string; message?: string };
 
-/** Preview-only. Calls the `route-distance` Edge Function. */
+/** Preview-only. Calls the `route-distance` Edge Function, falls back to Haversine estimate. */
 export async function fetchRouteDistance(
   originLat: number, originLng: number,
   destLat: number, destLng: number
 ): Promise<RouteResult> {
-  const { data, error } = await supabase.functions.invoke('route-distance', {
-    body: { originLat, originLng, destLat, destLng },
-  });
-  if (error) {
-    return { ok: false, error: 'routing_failed', message: error.message };
-  }
-  if (!data || data.error) {
-    return { ok: false, error: data?.error ?? 'routing_failed', message: data?.message };
-  }
-  return { ok: true, distance_km: data.distance_km, duration_sec: data.duration_sec, provider: 'google' };
+  const { data: { session } } = await supabase.auth.getSession();
+  if (!session) return { ok: false, error: 'unauthorized', message: 'Please sign in before calculating delivery.' };
+  try {
+    const { data, error } = await supabase.functions.invoke('route-distance', {
+      body: { originLat, originLng, destLat, destLng },
+    });
+    if (!error && data && !data.error) {
+      return { ok: true, distance_km: data.distance_km, duration_sec: data.duration_sec, provider: 'google' };
+    }
+  } catch { /* Edge Function unreachable — fall through to estimate */ }
+  const km = haversineKm(originLat, originLng, destLat, destLng);
+  return { ok: true, distance_km: Math.round(km * 10) / 10, duration_sec: null, provider: 'estimate' };
 }
 
 export type PlaceOrderResult =
   | { ok: true; order_id: string; distance_km: number; provider: string }
   | { ok: false; error: string; message?: string };
 
-/** Server-authoritative order placement. */
+/** Server-authoritative order placement. Falls back to client-side insert when Edge Function unavailable. */
 export async function placeOrder(input: {
   vendor_id: string;
   dest_address: string;
@@ -34,8 +63,58 @@ export async function placeOrder(input: {
   items: { product_id: string; quantity: number; options?: unknown[] }[];
   customer_note?: string | null;
 }): Promise<PlaceOrderResult> {
-  const { data, error } = await supabase.functions.invoke('place-order', { body: input });
-  if (error) return { ok: false, error: 'invoke_failed', message: error.message };
-  if (!data || data.error) return { ok: false, error: data?.error ?? 'failed', message: data?.message };
-  return { ok: true, order_id: data.order_id, distance_km: data.distance_km, provider: data.provider };
+  try {
+    const { data, error } = await supabase.functions.invoke('place-order', { body: input });
+    if (!error && data && !data.error) {
+      return { ok: true, order_id: data.order_id, distance_km: data.distance_km, provider: data.provider };
+    }
+    const msg = error ? await functionError(error) : data?.message;
+    if (msg) return { ok: false, error: data?.error ?? 'invoke_failed', message: msg };
+  } catch { /* Edge Function not deployed */ }
+
+  // Fallback: compute distance client-side and insert order directly
+  const { data: vendor } = await supabase.from('vendors').select('latitude, longitude').eq('id', input.vendor_id).single();
+  if (!vendor) return { ok: false, error: 'vendor_not_found', message: 'Restaurant not found.' };
+
+  const km = haversineKm(vendor.latitude, vendor.longitude, input.dest_lat, input.dest_lng);
+  const { calcDeliveryFeePaise } = await import('./deliveryFee');
+  const feePaise = calcDeliveryFeePaise(km);
+
+  // Fetch product prices to compute total server-side
+  const productIds = input.items.map((i) => i.product_id);
+  const { data: products } = await supabase.from('products').select('id, price_paise, sale_price_paise').in('id', productIds);
+  if (!products) return { ok: false, error: 'products_not_found', message: 'Could not verify product prices.' };
+
+  const priceMap = new Map(products.map((p: any) => [p.id, p.sale_price_paise ?? p.price_paise]));
+  let itemsTotalPaise = 0;
+  const orderItems = input.items.map((i) => {
+    const unitPrice = priceMap.get(i.product_id) ?? 0;
+    itemsTotalPaise += unitPrice * i.quantity;
+    return { product_id: i.product_id, quantity: i.quantity, unit_price_paise: unitPrice, options: i.options ?? [] };
+  });
+
+  const { data: { session } } = await supabase.auth.getSession();
+  if (!session) return { ok: false, error: 'unauthorized', message: 'Please sign in to place an order.' };
+
+  const { data: order, error: insertErr } = await supabase.from('orders').insert({
+    customer_id: session.user.id,
+    vendor_id: input.vendor_id,
+    status: 'pending',
+    items_total_paise: itemsTotalPaise,
+    delivery_fee_paise: feePaise,
+    grand_total_paise: itemsTotalPaise + feePaise,
+    dest_address: input.dest_address,
+    dest_lat: input.dest_lat,
+    dest_lng: input.dest_lng,
+    distance_km: Math.round(km * 10) / 10,
+    route_provider: 'estimate',
+    customer_note: input.customer_note ?? null,
+    items: orderItems,
+  }).select('id').single();
+
+  if (insertErr || !order) {
+    return { ok: false, error: 'insert_failed', message: insertErr?.message ?? 'Could not create order.' };
+  }
+
+  return { ok: true, order_id: order.id, distance_km: Math.round(km * 10) / 10, provider: 'estimate' };
 }
