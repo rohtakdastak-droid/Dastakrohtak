@@ -52,6 +52,16 @@ export async function signInWithGoogle() {
   }
 }
 
+export async function signUpWithPassword(email: string, password: string) {
+  return supabase.auth.signUp({ email, password });
+}
+
+export async function resetPassword(email: string) {
+  return supabase.auth.resetPasswordForEmail(email, {
+    redirectTo: authRedirectUrl(),
+  });
+}
+
 export async function signOut() {
   return supabase.auth.signOut();
 }
