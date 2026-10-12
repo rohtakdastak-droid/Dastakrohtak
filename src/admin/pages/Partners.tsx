@@ -93,26 +93,63 @@ export default function Partners() {
 
   return (
     <div>
-      <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-bold">Delivery partners</h1>
-        <button className="btn-primary" onClick={() => setShowCreate(true)}>
-          <UserPlus size={16} /> Create new partner
+      <div className="flex items-center justify-between gap-3">
+        <h1 className="text-xl font-bold md:text-2xl">Delivery partners</h1>
+        <button className="btn-primary shrink-0 text-xs md:text-sm" onClick={() => setShowCreate(true)}>
+          <UserPlus size={16} /> <span className="hidden sm:inline">Create new partner</span><span className="sm:hidden">Create</span>
         </button>
       </div>
 
-      <div className="card mt-4 p-4">
+      <div className="card mt-4 p-3 md:p-4">
         <div className="text-sm font-semibold">Assign existing user</div>
         <div className="mt-1 text-xs text-neutral-500">
           If someone already has an account, enter their display name to give them the delivery role.
         </div>
-        <div className="mt-3 flex gap-2">
-          <input className="input" placeholder="User display name" value={email} onChange={(e) => setEmail(e.target.value)} />
-          <button className="btn-outline" onClick={assignByEmail}><UserPlus size={14} /> Assign</button>
+        <div className="mt-3 flex flex-col gap-2 sm:flex-row">
+          <input className="input flex-1" placeholder="User display name" value={email} onChange={(e) => setEmail(e.target.value)} />
+          <button className="btn-outline shrink-0" onClick={assignByEmail}><UserPlus size={14} /> Assign</button>
         </div>
         {msg && <div className="mt-2 text-xs text-neutral-500">{msg}</div>}
       </div>
 
-      <div className="mt-4 overflow-x-auto rounded-2xl border border-neutral-200 dark:border-neutral-800">
+      {/* Mobile card layout */}
+      <div className="mt-4 space-y-2 md:hidden">
+        {rows.map((r) => (
+          <div key={r.user_id} className="card p-3">
+            <div className="flex items-start justify-between gap-2">
+              <div className="min-w-0 flex-1">
+                <div className="flex items-center gap-2">
+                  <span className="font-semibold">{r.profile?.display_name ?? r.user_id.slice(0, 8)}</span>
+                  <span className={`h-2 w-2 rounded-full ${r.is_online ? 'bg-green-500' : 'bg-neutral-300'}`} />
+                </div>
+                <div className="mt-1 text-xs text-neutral-500">{r.profile?.phone ?? 'No phone'}</div>
+                {r.vehicle_number && <div className="text-xs text-neutral-400">Vehicle: {r.vehicle_number}</div>}
+              </div>
+              <div className="text-right shrink-0">
+                <div className="text-xs font-medium capitalize">{r.profile?.status ?? '—'}</div>
+                <div className="text-[10px] text-neutral-400">{r.approved_at ? new Date(r.approved_at).toLocaleDateString() : 'Not approved'}</div>
+              </div>
+            </div>
+            <div className="mt-2 flex items-center gap-2 border-t border-neutral-100 pt-2 dark:border-neutral-800">
+              {r.partner_qr_code && <span className="truncate rounded bg-neutral-100 px-2 py-0.5 font-mono text-[10px] dark:bg-neutral-800">{r.partner_qr_code}</span>}
+              <div className="flex-1" />
+              {r.profile?.status === 'pending' && (
+                <button className="flex items-center gap-1 rounded-lg bg-green-50 px-2.5 py-1 text-xs font-medium text-green-700 dark:bg-green-500/10" onClick={() => setStatus(r.user_id, 'active')}><Check size={12} /> Approve</button>
+              )}
+              {r.profile?.status === 'active' && (
+                <button className="flex items-center gap-1 rounded-lg bg-amber-50 px-2.5 py-1 text-xs font-medium text-amber-700 dark:bg-amber-500/10" onClick={() => setStatus(r.user_id, 'suspended')}><Pause size={12} /> Suspend</button>
+              )}
+              {r.profile?.status === 'suspended' && (
+                <button className="flex items-center gap-1 rounded-lg bg-green-50 px-2.5 py-1 text-xs font-medium text-green-700 dark:bg-green-500/10" onClick={() => setStatus(r.user_id, 'active')}><Play size={12} /> Reactivate</button>
+              )}
+            </div>
+          </div>
+        ))}
+        {rows.length === 0 && <div className="py-6 text-center text-sm text-neutral-500">No delivery partners yet.</div>}
+      </div>
+
+      {/* Desktop table */}
+      <div className="mt-4 hidden overflow-x-auto rounded-2xl border border-neutral-200 dark:border-neutral-800 md:block">
         <table className="w-full text-left text-sm">
           <thead className="bg-neutral-50 text-xs uppercase text-neutral-500 dark:bg-neutral-900">
             <tr>

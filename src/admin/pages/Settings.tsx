@@ -101,12 +101,12 @@ export default function Settings() {
   if (!pay || !overflow) return <div className="p-6 text-sm text-neutral-500">Loading…</div>;
 
   return (
-    <div className="space-y-6">
-      <h1 className="text-2xl font-bold">Settings</h1>
+    <div className="space-y-4 md:space-y-6">
+      <h1 className="text-xl font-bold md:text-2xl">Settings</h1>
 
-      <section className="card p-5">
+      <section className="card p-3 md:p-5">
         <div className="flex items-center gap-2 text-sm font-semibold"><QrCode size={16} /> Payment (UPI QR)</div>
-        <div className="mt-3 grid grid-cols-2 gap-3">
+        <div className="mt-3 grid grid-cols-1 gap-3 sm:grid-cols-2">
           <F label="UPI VPA">
             <input className="input" value={pay.upi_vpa ?? ''} onChange={(e) => setPay({ ...pay, upi_vpa: e.target.value })} />
           </F>
@@ -115,11 +115,11 @@ export default function Settings() {
           </F>
 
           {/* QR Image Upload */}
-          <div className="col-span-2">
+          <div className="sm:col-span-2">
             <div className="mb-1 text-xs font-semibold text-neutral-500">UPI QR Image</div>
-            <div className="flex items-start gap-4">
+            <div className="flex flex-col items-start gap-4 sm:flex-row">
               {/* Preview */}
-              <div className="relative flex h-40 w-40 shrink-0 items-center justify-center overflow-hidden rounded-2xl border-2 border-dashed border-neutral-200 bg-neutral-50 dark:border-neutral-700 dark:bg-neutral-800">
+              <div className="relative flex h-36 w-36 shrink-0 items-center justify-center overflow-hidden rounded-2xl border-2 border-dashed border-neutral-200 bg-neutral-50 dark:border-neutral-700 dark:bg-neutral-800 sm:h-40 sm:w-40">
                 {qrPreview ? (
                   <>
                     <img src={qrPreview} alt="UPI QR" className="h-full w-full object-contain p-2" />
@@ -171,7 +171,7 @@ export default function Settings() {
             </div>
           </div>
 
-          <F label="Instructions" className="col-span-2">
+          <F label="Instructions" className="sm:col-span-2">
             <textarea className="input" rows={2} value={pay.instructions ?? ''} onChange={(e) => setPay({ ...pay, instructions: e.target.value })} />
           </F>
           <F label="Verification mode">
@@ -190,7 +190,7 @@ export default function Settings() {
         <button className="btn-primary mt-4" onClick={savePay}><Save size={14} /> Save payment settings</button>
       </section>
 
-      <section className="card p-5">
+      <section className="card p-3 md:p-5">
         <div className="text-sm font-semibold">Delivery rate table</div>
         <p className="mt-1 text-xs text-neutral-500">Bands are evaluated as (min_km, max_km]. Changing this affects only future orders.</p>
         <div className="mt-3 overflow-x-auto">
@@ -217,7 +217,7 @@ export default function Settings() {
         </div>
         <div className="mt-4 rounded-xl bg-neutral-50 p-3 dark:bg-neutral-900">
           <div className="text-xs font-semibold text-neutral-500">Overflow (above ceiling)</div>
-          <div className="mt-2 grid grid-cols-3 gap-2">
+          <div className="mt-2 grid grid-cols-1 gap-2 sm:grid-cols-3">
             <F label="Ceiling km">
               <input className="input" type="number" step="0.1" value={overflow.ceiling_km} onChange={(e) => setOverflow({ ...overflow, ceiling_km: parseFloat(e.target.value) })} />
             </F>
@@ -232,12 +232,12 @@ export default function Settings() {
         <button className="btn-primary mt-4" onClick={saveRates}><Save size={14} /> Save delivery rates</button>
       </section>
 
-      <section className="card p-5">
+      <section className="card p-3 md:p-5">
         <div className="text-sm font-semibold">Tax</div>
-        <div className="mt-2 flex items-center gap-2">
-          <input className="input w-32" type="number" step="0.1" value={tax} onChange={(e) => setTax(parseFloat(e.target.value || '0'))} />
-          <span className="text-sm text-neutral-500">% applied at checkout (0 = off)</span>
-          <button className="btn-outline" onClick={saveTax}><Save size={14} /> Save</button>
+        <div className="mt-2 flex flex-col gap-2 sm:flex-row sm:items-center">
+          <input className="input w-full sm:w-32" type="number" step="0.1" value={tax} onChange={(e) => setTax(parseFloat(e.target.value || '0'))} />
+          <span className="text-xs text-neutral-500 sm:text-sm">% applied at checkout (0 = off)</span>
+          <button className="btn-outline shrink-0" onClick={saveTax}><Save size={14} /> Save</button>
         </div>
       </section>
 

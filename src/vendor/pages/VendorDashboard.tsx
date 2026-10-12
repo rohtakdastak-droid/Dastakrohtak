@@ -49,10 +49,10 @@ export default function VendorDashboard() {
 
   return (
     <div>
-      <h1 className="text-2xl font-bold">Dashboard</h1>
-      <div className="mt-1 text-sm text-neutral-500">{vendor.name} · today</div>
+      <h1 className="text-xl font-bold md:text-2xl">Dashboard</h1>
+      <div className="mt-1 text-xs text-neutral-500 md:text-sm">{vendor.name} · today</div>
 
-      <div className="mt-5 grid grid-cols-2 gap-3 lg:grid-cols-4">
+      <div className="mt-4 grid grid-cols-2 gap-2 md:mt-5 md:gap-3 lg:grid-cols-4">
         <Tile label="Orders today" value={stats.today} icon={<ShoppingBag size={18} />} />
         <Tile label="New (awaiting you)" value={stats.newPending} icon={<Clock size={18} />} tone="amber"
               link={stats.newPending > 0 ? '/vendor/orders?filter=new' : undefined} />
@@ -99,13 +99,13 @@ function Tile({ label, value, icon, hint, link, tone = 'default' }:
     amber: 'bg-amber-50 dark:bg-amber-500/10',
   };
   const inner = (
-    <div className={`card p-4 ${toneCls[tone]}`}>
+    <div className={`card p-3 md:p-4 ${toneCls[tone]}`}>
       <div className="flex items-center justify-between text-neutral-500">
-        <div className="text-xs font-semibold uppercase tracking-wider">{label}</div>
+        <div className="text-[10px] font-semibold uppercase tracking-wider md:text-xs">{label}</div>
         {icon}
       </div>
-      <div className="mt-1 text-xl font-bold">{value}</div>
-      {hint && <div className="mt-0.5 text-[11px] text-neutral-400">{hint}</div>}
+      <div className="mt-1 text-lg font-bold md:text-xl">{value}</div>
+      {hint && <div className="mt-0.5 text-[10px] text-neutral-400">{hint}</div>}
     </div>
   );
   return link ? <Link to={link}>{inner}</Link> : inner;

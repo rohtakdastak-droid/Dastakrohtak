@@ -15,8 +15,30 @@ export default function AuditLog() {
 
   return (
     <div>
-      <h1 className="text-2xl font-bold">Audit log</h1>
-      <div className="mt-4 overflow-x-auto rounded-2xl border border-neutral-200 dark:border-neutral-800">
+      <h1 className="text-xl font-bold md:text-2xl">Audit log</h1>
+
+      {/* Mobile card layout */}
+      <div className="mt-4 space-y-2 md:hidden">
+        {rows.map((r) => (
+          <div key={r.id} className="card p-3">
+            <div className="flex items-start justify-between gap-2">
+              <div className="min-w-0 flex-1">
+                <div className="font-mono text-xs font-medium">{r.action}</div>
+                <div className="mt-0.5 text-xs text-neutral-500">{r.entity}{r.entity_id ? ` · ${String(r.entity_id).slice(0, 8)}` : ''}</div>
+                {r.reason && <div className="mt-1 text-xs text-neutral-400">{r.reason}</div>}
+              </div>
+              <div className="text-right shrink-0">
+                <div className="text-[10px] text-neutral-400">{r.profiles?.display_name ?? r.actor_id?.slice(0, 8) ?? 'system'}</div>
+                <div className="text-[10px] text-neutral-400">{new Date(r.created_at).toLocaleString()}</div>
+              </div>
+            </div>
+          </div>
+        ))}
+        {rows.length === 0 && <div className="py-6 text-center text-sm text-neutral-500">No audit entries yet.</div>}
+      </div>
+
+      {/* Desktop table */}
+      <div className="mt-4 hidden overflow-x-auto rounded-2xl border border-neutral-200 dark:border-neutral-800 md:block">
         <table className="w-full text-left text-sm">
           <thead className="bg-neutral-50 text-xs uppercase text-neutral-500 dark:bg-neutral-900">
             <tr>

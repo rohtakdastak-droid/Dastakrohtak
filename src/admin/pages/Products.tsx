@@ -54,19 +54,50 @@ export default function Products() {
 
   return (
     <div>
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <h1 className="text-2xl font-bold">Products</h1>
+      <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center sm:justify-between">
+        <h1 className="text-xl font-bold md:text-2xl">Products</h1>
         <div className="flex items-center gap-2">
-          <select className="input w-auto" value={vendorId} onChange={(e) => setVendorId(e.target.value)}>
+          <select className="input w-full sm:w-auto" value={vendorId} onChange={(e) => setVendorId(e.target.value)}>
             {vendors.map((v) => <option key={v.id} value={v.id}>{v.name}</option>)}
           </select>
-          <button className="btn-primary" onClick={() => setEditing({ ...EMPTY })}>
-            <Plus size={16} /> Add product
+          <button className="btn-primary shrink-0 text-xs md:text-sm" onClick={() => setEditing({ ...EMPTY })}>
+            <Plus size={16} /> <span className="hidden sm:inline">Add product</span><span className="sm:hidden">Add</span>
           </button>
         </div>
       </div>
 
-      <div className="mt-4 overflow-hidden rounded-2xl border border-neutral-200 dark:border-neutral-800">
+      {/* Mobile card layout */}
+      <div className="mt-4 space-y-2 md:hidden">
+        {products.map((p) => (
+          <div key={p.id} className="card p-3">
+            <div className="flex items-start justify-between gap-2">
+              <div className="min-w-0 flex-1">
+                <div className="flex items-center gap-2">
+                  <span className="font-semibold">{p.name}</span>
+                  <span className="text-[10px] capitalize text-neutral-400">{p.diet.replace('_', ' ')}</span>
+                </div>
+                {p.description && <div className="mt-0.5 line-clamp-1 text-xs text-neutral-500">{p.description}</div>}
+              </div>
+              <div className="text-right shrink-0">
+                <div className="text-sm font-bold">{formatRupees(p.price_paise)}</div>
+                {p.sale_price_paise && <div className="text-xs text-brand-600">{formatRupees(p.sale_price_paise)}</div>}
+              </div>
+            </div>
+            <div className="mt-2 flex items-center gap-2 border-t border-neutral-100 pt-2 dark:border-neutral-800">
+              <button onClick={() => toggle(p)} className={`flex items-center gap-1 text-xs font-medium ${p.is_available ? 'text-green-600' : 'text-neutral-400'}`}>
+                <Power size={14} /> {p.is_available ? 'Available' : 'Off'}
+              </button>
+              <div className="flex-1" />
+              <button className="flex h-8 w-8 items-center justify-center rounded-lg bg-neutral-100 dark:bg-neutral-800" onClick={() => setEditing(p)}><Pencil size={14} /></button>
+              <button className="flex h-8 w-8 items-center justify-center rounded-lg bg-red-50 text-red-600 dark:bg-red-500/10" onClick={() => remove(p)}><Trash2 size={14} /></button>
+            </div>
+          </div>
+        ))}
+        {products.length === 0 && <div className="py-6 text-center text-sm text-neutral-500">No products yet.</div>}
+      </div>
+
+      {/* Desktop table */}
+      <div className="mt-4 hidden overflow-hidden rounded-2xl border border-neutral-200 dark:border-neutral-800 md:block">
         <table className="w-full text-left text-sm">
           <thead className="bg-neutral-50 text-xs uppercase text-neutral-500 dark:bg-neutral-900">
             <tr>
@@ -110,11 +141,11 @@ export default function Products() {
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
           <div className="card w-full max-w-lg p-5">
             <div className="text-lg font-semibold">{editing.id ? 'Edit' : 'Add'} product</div>
-            <div className="mt-3 grid grid-cols-2 gap-3">
-              <F label="Name" className="col-span-2">
+            <div className="mt-3 grid grid-cols-1 gap-3 sm:grid-cols-2">
+              <F label="Name" className="sm:col-span-2">
                 <input className="input" value={editing.name ?? ''} onChange={(e) => setEditing({ ...editing, name: e.target.value })} />
               </F>
-              <F label="Description" className="col-span-2">
+              <F label="Description" className="sm:col-span-2">
                 <textarea className="input" rows={2} value={editing.description ?? ''} onChange={(e) => setEditing({ ...editing, description: e.target.value })} />
               </F>
               <F label="Price (paise)">

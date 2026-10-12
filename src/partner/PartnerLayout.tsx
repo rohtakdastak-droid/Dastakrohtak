@@ -10,10 +10,15 @@ export default function PartnerLayout() {
   const { session, role, loading: roleLoading } = useRole();
   const { data, loading } = usePartner();
 
-  if (roleLoading || loading) return <div className="p-10 text-sm text-neutral-500">Loading…</div>;
+  if (roleLoading || loading) return <div className="flex min-h-screen items-center justify-center text-sm text-neutral-500">Loading…</div>;
   if (!session) {
-    navigate('/login', { replace: true });
-    return null;
+    return (
+      <div className="flex min-h-screen flex-col items-center justify-center p-6 text-center">
+        <div className="text-xl font-bold">Please sign in</div>
+        <p className="mt-2 text-sm text-neutral-500">You need to be logged in to access the delivery panel.</p>
+        <button onClick={() => navigate('/login', { replace: true })} className="btn-primary mt-4">Sign in</button>
+      </div>
+    );
   }
 
   if (role !== 'delivery') {

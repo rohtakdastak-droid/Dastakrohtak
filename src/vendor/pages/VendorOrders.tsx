@@ -59,9 +59,9 @@ export default function VendorOrders() {
 
   return (
     <div>
-      <h1 className="text-2xl font-bold">Orders</h1>
+      <h1 className="text-xl font-bold md:text-2xl">Orders</h1>
 
-      <div className="mt-4 flex flex-wrap gap-2">
+      <div className="mt-3 flex flex-wrap gap-1.5 md:mt-4 md:gap-2">
         {TABS.map((t) => (
           <button
             key={t.key}

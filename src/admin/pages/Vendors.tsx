@@ -108,10 +108,10 @@ export default function Vendors() {
 
   return (
     <div>
-      <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-bold">Restaurants & Cafes</h1>
-        <button className="btn-primary" onClick={() => setEditing({ ...EMPTY })}>
-          <Plus size={16} /> Add vendor
+      <div className="flex items-center justify-between gap-3">
+        <h1 className="text-xl font-bold md:text-2xl">Restaurants & Cafes</h1>
+        <button className="btn-primary shrink-0 text-xs md:text-sm" onClick={() => setEditing({ ...EMPTY })}>
+          <Plus size={16} /> <span className="hidden sm:inline">Add vendor</span><span className="sm:hidden">Add</span>
         </button>
       </div>
 
@@ -122,7 +122,40 @@ export default function Vendors() {
         ))}
       </div>
 
-      <div className="mt-4 overflow-hidden rounded-2xl border border-neutral-200 dark:border-neutral-800">
+      {/* Mobile card layout */}
+      <div className="mt-4 space-y-3 md:hidden">
+        {filtered.map((v, i) => (
+          <div key={v.id} className="card p-3">
+            <div className="flex items-start justify-between gap-2">
+              <div className="min-w-0 flex-1">
+                <div className="font-semibold">{v.name}</div>
+                <div className="mt-0.5 text-xs capitalize text-neutral-500">{v.category}</div>
+                {v.dispatch_address && <div className="mt-1 truncate text-xs text-neutral-400">{v.dispatch_address}</div>}
+              </div>
+              <div className="flex items-center gap-1">
+                <button onClick={() => move(i, -1)} className="flex h-8 w-8 items-center justify-center rounded-lg bg-neutral-100 dark:bg-neutral-800"><ArrowUp size={14} /></button>
+                <button onClick={() => move(i, 1)} className="flex h-8 w-8 items-center justify-center rounded-lg bg-neutral-100 dark:bg-neutral-800"><ArrowDown size={14} /></button>
+              </div>
+            </div>
+            <div className="mt-2 flex items-center gap-3 border-t border-neutral-100 pt-2 dark:border-neutral-800">
+              <button onClick={() => toggleActive(v)} className={`flex items-center gap-1 text-xs font-medium ${v.is_active ? 'text-green-600' : 'text-neutral-400'}`}>
+                <Power size={14} /> {v.is_active ? 'Active' : 'Off'}
+              </button>
+              <button onClick={() => toggleFeatured(v)} className={`flex items-center gap-1 text-xs font-medium ${v.is_featured ? 'text-amber-500' : 'text-neutral-400'}`}>
+                <Star size={14} fill={v.is_featured ? 'currentColor' : 'none'} /> Featured
+              </button>
+              <div className="flex-1" />
+              <button className="flex h-8 w-8 items-center justify-center rounded-lg bg-neutral-100 dark:bg-neutral-800" onClick={() => openCredDialog(v)} title="Create login"><UserPlus size={14} /></button>
+              <button className="flex h-8 w-8 items-center justify-center rounded-lg bg-neutral-100 dark:bg-neutral-800" onClick={() => setEditing(v)}><Pencil size={14} /></button>
+              <button className="flex h-8 w-8 items-center justify-center rounded-lg bg-red-50 text-red-600 dark:bg-red-500/10" onClick={() => remove(v)}><Trash2 size={14} /></button>
+            </div>
+          </div>
+        ))}
+        {filtered.length === 0 && <div className="py-6 text-center text-sm text-neutral-500">No vendors.</div>}
+      </div>
+
+      {/* Desktop table */}
+      <div className="mt-4 hidden overflow-hidden rounded-2xl border border-neutral-200 dark:border-neutral-800 md:block">
         <table className="w-full text-left text-sm">
           <thead className="bg-neutral-50 text-xs uppercase text-neutral-500 dark:bg-neutral-900">
             <tr>
@@ -242,8 +275,8 @@ function EditDialog({ value, onChange, onSave, onClose }: {
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
       <div className="card max-h-[90vh] w-full max-w-xl overflow-y-auto p-5">
         <div className="text-lg font-semibold">{value.id ? 'Edit vendor' : 'Add vendor'}</div>
-        <div className="mt-3 grid grid-cols-2 gap-3">
-          <Field label="Name" className="col-span-2">
+        <div className="mt-3 grid grid-cols-1 gap-3 sm:grid-cols-2">
+          <Field label="Name" className="sm:col-span-2">
             <input className="input" value={value.name ?? ''} onChange={(e) => onChange({ ...value, name: e.target.value })} />
           </Field>
           <Field label="Slug">
@@ -254,10 +287,10 @@ function EditDialog({ value, onChange, onSave, onClose }: {
               {CATS.map((c) => <option key={c} value={c}>{c}</option>)}
             </select>
           </Field>
-          <Field label="Description" className="col-span-2">
+          <Field label="Description" className="sm:col-span-2">
             <textarea className="input" rows={2} value={value.description ?? ''} onChange={(e) => onChange({ ...value, description: e.target.value })} />
           </Field>
-          <Field label="Dispatch address" className="col-span-2">
+          <Field label="Dispatch address" className="sm:col-span-2">
             <input className="input" value={value.dispatch_address ?? ''} onChange={(e) => onChange({ ...value, dispatch_address: e.target.value })} />
           </Field>
           <Field label="Latitude">
