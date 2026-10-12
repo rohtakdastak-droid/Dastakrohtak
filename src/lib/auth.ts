@@ -26,6 +26,10 @@ export async function signInWithEmail(email: string) {
   return supabase.auth.signInWithOtp({ email, options: { emailRedirectTo: authRedirectUrl() } });
 }
 
+export async function signInWithPassword(email: string, password: string) {
+  return supabase.auth.signInWithPassword({ email, password });
+}
+
 export async function signInWithGoogle() {
   // Requires Google provider enabled in Supabase → Auth → Providers.
   // Free: Google Cloud OAuth client in the free tier, Supabase handles the exchange.

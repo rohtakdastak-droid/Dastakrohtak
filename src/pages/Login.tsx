@@ -1,17 +1,31 @@
 import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { ArrowLeft, Mail, Sparkles, UtensilsCrossed } from 'lucide-react';
-import { signInWithEmail, signInWithGoogle } from '../lib/auth';
+import { ArrowLeft, Mail, Lock, Sparkles, UtensilsCrossed } from 'lucide-react';
+import { signInWithEmail, signInWithPassword, signInWithGoogle } from '../lib/auth';
+
+type Tab = 'password' | 'magic';
 
 export default function Login() {
+  const [tab, setTab] = useState<Tab>('password');
   const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
   const [sent, setSent] = useState(false);
   const [err, setErr] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const [googleBusy, setGoogleBusy] = useState(false);
   const nav = useNavigate();
 
-  async function submit(e: React.FormEvent) {
+  async function submitPassword(e: React.FormEvent) {
+    e.preventDefault();
+    setBusy(true);
+    setErr(null);
+    const { error } = await signInWithPassword(email, password);
+    setBusy(false);
+    if (error) setErr(error.message);
+    else nav('/');
+  }
+
+  async function submitMagicLink(e: React.FormEvent) {
     e.preventDefault();
     setBusy(true);
     setErr(null);
@@ -65,28 +79,77 @@ export default function Login() {
           <div className="h-px flex-1 bg-neutral-200 dark:bg-neutral-800" />
         </div>
 
-        <form onSubmit={submit} className="space-y-3">
-          <div className="relative">
-            <Mail size={16} className="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-neutral-400" />
-            <input
-              type="email"
-              required
-              className="input pl-11"
-              placeholder="you@email.com"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-            />
-          </div>
-          <button className="btn-primary w-full" disabled={busy}>{busy ? 'Sending…' : 'Send magic link'}</button>
-          {sent && (
-            <div className="animate-scale-in rounded-2xl bg-emerald-50 p-4 text-sm text-emerald-700 dark:bg-emerald-500/10 dark:text-emerald-200">
-              Check your email for the sign-in link.
+        {/* Tabs */}
+        <div className="mb-4 flex rounded-2xl bg-neutral-100 p-1 dark:bg-neutral-800">
+          <button
+            onClick={() => { setTab('password'); setErr(null); setSent(false); }}
+            className={`flex-1 rounded-xl py-2 text-xs font-semibold transition-all ${
+              tab === 'password' ? 'bg-white text-neutral-900 shadow-sm dark:bg-neutral-700 dark:text-white' : 'text-neutral-500'
+            }`}
+          >
+            Email & Password
+          </button>
+          <button
+            onClick={() => { setTab('magic'); setErr(null); setSent(false); }}
+            className={`flex-1 rounded-xl py-2 text-xs font-semibold transition-all ${
+              tab === 'magic' ? 'bg-white text-neutral-900 shadow-sm dark:bg-neutral-700 dark:text-white' : 'text-neutral-500'
+            }`}
+          >
+            Magic Link
+          </button>
+        </div>
+
+        {tab === 'password' ? (
+          <form onSubmit={submitPassword} className="space-y-3">
+            <div className="relative">
+              <Mail size={16} className="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-neutral-400" />
+              <input
+                type="email"
+                required
+                className="input pl-11"
+                placeholder="you@email.com"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+              />
             </div>
-          )}
-          {err && (
-            <div className="animate-scale-in rounded-2xl bg-red-50 p-4 text-sm text-red-700 dark:bg-red-500/10 dark:text-red-200">{err}</div>
-          )}
-        </form>
+            <div className="relative">
+              <Lock size={16} className="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-neutral-400" />
+              <input
+                type="password"
+                required
+                className="input pl-11"
+                placeholder="Password"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+              />
+            </div>
+            <button className="btn-primary w-full" disabled={busy}>{busy ? 'Signing in…' : 'Sign in'}</button>
+          </form>
+        ) : (
+          <form onSubmit={submitMagicLink} className="space-y-3">
+            <div className="relative">
+              <Mail size={16} className="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-neutral-400" />
+              <input
+                type="email"
+                required
+                className="input pl-11"
+                placeholder="you@email.com"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+              />
+            </div>
+            <button className="btn-primary w-full" disabled={busy}>{busy ? 'Sending…' : 'Send magic link'}</button>
+            {sent && (
+              <div className="animate-scale-in rounded-2xl bg-emerald-50 p-4 text-sm text-emerald-700 dark:bg-emerald-500/10 dark:text-emerald-200">
+                Check your email for the sign-in link.
+              </div>
+            )}
+          </form>
+        )}
+
+        {err && (
+          <div className="mt-3 animate-scale-in rounded-2xl bg-red-50 p-4 text-sm text-red-700 dark:bg-red-500/10 dark:text-red-200">{err}</div>
+        )}
 
         <div className="mt-5 text-center text-xs text-neutral-500">
           By continuing you agree to Dastak's terms.
