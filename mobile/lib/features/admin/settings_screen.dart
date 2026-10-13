@@ -55,7 +55,7 @@ class _AdminSettingsScreenState extends ConsumerState<AdminSettingsScreen> {
                             children: [
                               Row(children: const [
                                 Icon(Icons.payments_outlined,
-                                    color: Color(0xFFFF6B00)),
+                                    color: Color(0xFF0EA5E9)),
                                 SizedBox(width: 10),
                                 Text('Payment instructions',
                                     style: TextStyle(
@@ -67,7 +67,7 @@ class _AdminSettingsScreenState extends ConsumerState<AdminSettingsScreen> {
                                   style: const TextStyle(
                                       fontFamily: 'monospace',
                                       fontSize: 14,
-                                      color: Color(0xFF1F2937))),
+                                      color: Color(0xFF0F172A))),
                               const SizedBox(height: 4),
                               const Text(
                                   'Manual verification only. COD and gateway payments are unavailable.',
@@ -125,7 +125,7 @@ class _AdminSettingsScreenState extends ConsumerState<AdminSettingsScreen> {
                             ]))),
                 const SizedBox(height: 20),
                 Row(children: const [
-                  Icon(Icons.pedal_bike_outlined, color: Color(0xFFFF6B00)),
+                  Icon(Icons.pedal_bike_outlined, color: Color(0xFF0EA5E9)),
                   SizedBox(width: 8),
                   Text('Delivery rate bands',
                       style:
@@ -140,7 +140,7 @@ class _AdminSettingsScreenState extends ConsumerState<AdminSettingsScreen> {
                       subtitle: Text(money(integer(rate['fee_paise']))),
                       trailing: IconButton(
                           tooltip: 'Edit rate',
-                          icon: const Icon(Icons.edit, color: Color(0xFFFF6B00)),
+                          icon: const Icon(Icons.edit, color: Color(0xFF0EA5E9)),
                           onPressed: () async {
                             await editRecord(context,
                                 title: 'Delivery band',

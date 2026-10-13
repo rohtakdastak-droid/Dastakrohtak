@@ -188,43 +188,43 @@ class _DastakAppState extends ConsumerState<DastakApp> {
       theme: ThemeData(
           useMaterial3: true,
           colorScheme: ColorScheme.fromSeed(
-              seedColor: const Color(0xFFFF6B00),
-              primary: const Color(0xFFFF6B00),
+              seedColor: const Color(0xFF0EA5E9),
+              primary: const Color(0xFF0EA5E9),
               secondary: const Color(0xFF10B981),
               error: const Color(0xFFEF4444),
               background: Colors.white,
               surface: Colors.white,
               onPrimary: Colors.white,
-              onBackground: const Color(0xFF1F2937),
-              onSurface: const Color(0xFF1F2937),
+              onBackground: const Color(0xFF0F172A),
+              onSurface: const Color(0xFF0F172A),
               brightness: Brightness.light),
           scaffoldBackgroundColor: Colors.white,
           appBarTheme: const AppBarTheme(
               backgroundColor: Colors.white,
-              foregroundColor: Color(0xFF1F2937),
+              foregroundColor: Color(0xFF0F172A),
               centerTitle: false,
               elevation: 0,
               scrolledUnderElevation: 0,
               titleTextStyle: TextStyle(
-                  color: Color(0xFF1F2937),
+                  color: Color(0xFF0F172A),
                   fontWeight: FontWeight.w800,
                   fontSize: 20)),
           textTheme: const TextTheme(
               headlineLarge: TextStyle(
-                  color: Color(0xFF1F2937),
+                  color: Color(0xFF0F172A),
                   fontWeight: FontWeight.w800,
                   fontSize: 32,
                   height: 1.15),
               headlineMedium: TextStyle(
-                  color: Color(0xFF1F2937),
+                  color: Color(0xFF0F172A),
                   fontWeight: FontWeight.w800,
                   fontSize: 24),
               titleLarge: TextStyle(
-                  color: Color(0xFF1F2937),
+                  color: Color(0xFF0F172A),
                   fontWeight: FontWeight.w700,
                   fontSize: 18),
               titleMedium: TextStyle(
-                  color: Color(0xFF1F2937),
+                  color: Color(0xFF0F172A),
                   fontWeight: FontWeight.w700,
                   fontSize: 15),
               bodyMedium: TextStyle(color: Color(0xFF374151))),
@@ -241,7 +241,7 @@ class _DastakAppState extends ConsumerState<DastakApp> {
               focusedBorder: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(14),
                   borderSide: const BorderSide(
-                      color: Color(0xFFFF6B00), width: 1.5))),
+                      color: Color(0xFF0EA5E9), width: 1.5))),
           cardTheme: CardTheme(
               elevation: 0,
               color: Colors.white,
@@ -251,7 +251,7 @@ class _DastakAppState extends ConsumerState<DastakApp> {
                   side: const BorderSide(color: Color(0xFFEEF2F6)))),
           filledButtonTheme: FilledButtonThemeData(
               style: FilledButton.styleFrom(
-                  backgroundColor: const Color(0xFFFF6B00),
+                  backgroundColor: const Color(0xFF0EA5E9),
                   foregroundColor: Colors.white,
                   minimumSize: const Size.fromHeight(52),
                   padding: const EdgeInsets.symmetric(
@@ -264,18 +264,18 @@ class _DastakAppState extends ConsumerState<DastakApp> {
               style: OutlinedButton.styleFrom(
                   minimumSize: const Size.fromHeight(48),
                   side: const BorderSide(color: Color(0xFFE5E7EB)),
-                  foregroundColor: const Color(0xFF1F2937),
+                  foregroundColor: const Color(0xFF0F172A),
                   shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(14)))),
           navigationBarTheme: const NavigationBarThemeData(
               backgroundColor: Colors.white,
-              indicatorColor: Color(0xFFFFF4E8),
+              indicatorColor: Color(0xFFE0F2FE),
               elevation: 0,
               surfaceTintColor: Colors.transparent,
               labelTextStyle: WidgetStatePropertyAll(TextStyle(
                   fontSize: 11,
                   fontWeight: FontWeight.w600,
-                  color: Color(0xFF1F2937))),
+                  color: Color(0xFF0F172A))),
               iconTheme: WidgetStatePropertyAll(
-                  IconThemeData(color: Color(0xFF1F2937))))));
+                  IconThemeData(color: Color(0xFF0F172A))))));
 }

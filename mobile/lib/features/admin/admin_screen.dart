@@ -54,7 +54,7 @@ class AdminScreen extends ConsumerWidget {
             children: [
               for (final e in _navItems)
                 Material(
-                    color: const Color(0xFFFFF4E8),
+                    color: const Color(0xFFE0F2FE),
                     borderRadius: BorderRadius.circular(16),
                     child: InkWell(
                         borderRadius: BorderRadius.circular(16),
@@ -65,14 +65,14 @@ class AdminScreen extends ConsumerWidget {
                                 mainAxisAlignment: MainAxisAlignment.center,
                                 children: [
                                   Icon(e.$1,
-                                      size: 26, color: const Color(0xFFFF6B00)),
+                                      size: 26, color: const Color(0xFF0EA5E9)),
                                   const SizedBox(height: 6),
                                   Text(e.$2,
                                       textAlign: TextAlign.center,
                                       style: const TextStyle(
                                           fontSize: 12,
                                           fontWeight: FontWeight.w700,
-                                          color: Color(0xFF1F2937)))
+                                          color: Color(0xFF0F172A)))
                                 ]))))
             ]),
         const SizedBox(height: 20),
@@ -95,10 +95,10 @@ class AdminScreen extends ConsumerWidget {
                         width: 40,
                         height: 40,
                         decoration: BoxDecoration(
-                            color: const Color(0xFFFFF4E8),
+                            color: const Color(0xFFE0F2FE),
                             borderRadius: BorderRadius.circular(10)),
                         child: Icon(_iconFor(entry.key),
-                            color: const Color(0xFFFF6B00), size: 22)),
+                            color: const Color(0xFF0EA5E9), size: 22)),
                     title: Text(human(entry.key),
                         style: const TextStyle(
                             fontWeight: FontWeight.w600, fontSize: 14)),
@@ -110,7 +110,7 @@ class AdminScreen extends ConsumerWidget {
                           style: const TextStyle(
                               fontSize: 20,
                               fontWeight: FontWeight.w800,
-                              color: Color(0xFF1F2937))),
+                              color: Color(0xFF0F172A))),
                       const SizedBox(width: 4),
                       const Icon(Icons.chevron_right,
                           color: Color(0xFF9CA3AF), size: 18)

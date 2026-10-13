@@ -170,7 +170,7 @@ class _DeliveryScreenState extends ConsumerState<DeliveryScreen> {
                       children: [
                         _dStat(context, 'Deliveries today',
                             '${s['today_deliveries']}', Icons.pedal_bike_outlined,
-                            color: const Color(0xFFFF6B00)),
+                            color: const Color(0xFF0EA5E9)),
                         _dStat(context, 'Earnings today',
                             money(integer(s['today_earn'])),
                             Icons.payments_outlined,

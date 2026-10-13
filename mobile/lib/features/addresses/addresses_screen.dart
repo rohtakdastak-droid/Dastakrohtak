@@ -105,7 +105,6 @@ class _AddressEditorState extends ConsumerState<AddressEditor> {
       try {
         mapController.move(here, 16);
       } catch (_) {}
-      if (mounted) toast(context, 'Location captured');
     } catch (e) {
       if (mounted) toast(context, errorText(e));
     } finally {
@@ -165,8 +164,8 @@ class _AddressEditorState extends ConsumerState<AddressEditor> {
                             ? 'Locating…'
                             : 'Use my current location'),
                         style: FilledButton.styleFrom(
-                            backgroundColor: const Color(0xFFFFF4E8),
-                            foregroundColor: const Color(0xFFFF6B00)))),
+                            backgroundColor: const Color(0xFFE0F2FE),
+                            foregroundColor: const Color(0xFF0EA5E9)))),
                 const SizedBox(height: 12),
                 ClipRRect(
                     borderRadius: BorderRadius.circular(16),
@@ -197,7 +196,7 @@ class _AddressEditorState extends ConsumerState<AddressEditor> {
                                   Marker(
                                       point: pin!,
                                       child: const Icon(Icons.location_pin,
-                                          size: 42, color: Color(0xFFFF6B00)))
+                                          size: 42, color: Color(0xFF0EA5E9)))
                                 ]),
                               RichAttributionWidget(
                                   alignment: AttributionAlignment.bottomRight,
@@ -216,13 +215,19 @@ class _AddressEditorState extends ConsumerState<AddressEditor> {
                     keyboard: const TextInputType.numberWithOptions(
                         decimal: true, signed: true)),
                 ActionButton('Save address', () async {
-                  if (!form.currentState!.validate()) return;
+                  if (!form.currentState!.validate()) {
+                    throw StateError(
+                        'Fill in the label and complete address first');
+                  }
                   final lat = double.tryParse(latitude.text),
                       lng = double.tryParse(longitude.text);
-                  if (!validCoordinates(lat, lng) ||
-                      address.text.trim().length < 8) {
+                  if (!validCoordinates(lat, lng)) {
                     throw StateError(
-                        'Enter a complete address and select a valid delivery pin');
+                        'Pick a location on the map or tap "Use my current location"');
+                  }
+                  if (address.text.trim().length < 8) {
+                    throw StateError(
+                        'Address must include house, street and locality');
                   }
                   final repo = ref.read(repositoryProvider);
                   await repo.save(

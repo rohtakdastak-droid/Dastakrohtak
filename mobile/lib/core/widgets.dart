@@ -281,10 +281,10 @@ class Photo extends StatelessWidget {
       child: url == null
           ? Container(
               height: height,
-              color: const Color(0xFFFFF4E8),
+              color: const Color(0xFFE0F2FE),
               child: const Center(
                   child: Icon(Icons.storefront,
-                      size: 44, color: Color(0xFFFF6B00))))
+                      size: 44, color: Color(0xFF0EA5E9))))
           : Image.network(url!,
               height: height,
               width: double.infinity,

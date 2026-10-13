@@ -27,7 +27,7 @@ class _DiscoveryScreenState extends ConsumerState<DiscoveryScreen> {
                 .toList(),
         header: [
           Row(children: [
-            const Icon(Icons.location_on_outlined, color: Color(0xFFFF6B00)),
+            const Icon(Icons.location_on_outlined, color: Color(0xFF0EA5E9)),
             const Expanded(
                 child: Text('YOUR NEIGHBOURHOOD • ROHTAK',
                     style:
@@ -153,7 +153,6 @@ class _StoreScreenState extends ConsumerState<StoreScreen> {
     await ref.read(cartProvider.notifier).add(
         product, product.options.where((o) => selected.contains(o.id)).toList(),
         replace: replace);
-    if (mounted) toast(context, 'Added to your bag');
   }
 
   @override
@@ -174,10 +173,10 @@ class _StoreScreenState extends ConsumerState<StoreScreen> {
             : Padding(
                 padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
                 child: Material(
-                    color: const Color(0xFFFF6B00),
+                    color: const Color(0xFF0EA5E9),
                     borderRadius: BorderRadius.circular(16),
                     elevation: 6,
-                    shadowColor: const Color(0xFFFF6B00).withOpacity(0.4),
+                    shadowColor: const Color(0xFF0EA5E9).withOpacity(0.4),
                     child: InkWell(
                         borderRadius: BorderRadius.circular(16),
                         onTap: () => context.push('/cart'),
