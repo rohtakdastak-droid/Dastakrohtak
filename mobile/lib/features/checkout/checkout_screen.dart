@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:uuid/uuid.dart';
+import '../../core/location.dart';
 import '../../core/models.dart';
 import '../../core/providers.dart';
 import '../../core/widgets.dart';
@@ -46,7 +47,14 @@ class _CheckoutScreenState extends ConsumerState<CheckoutScreen> {
       if (mounted) {
         setState(() {
           addresses = rows.map(Address.new).toList();
-          selected = addresses.firstOrNull;
+          final point = ref.read(deliveryPointProvider);
+          selected = addresses
+                  .where((a) =>
+                      point != null &&
+                      (a.lat - point.lat).abs() < 1e-6 &&
+                      (a.lng - point.lng).abs() < 1e-6)
+                  .firstOrNull ??
+              (selected == null ? addresses.firstOrNull : addresses.where((a) => a.id == selected!.id).firstOrNull ?? addresses.firstOrNull);
           loading = false;
           error = null;
         });
@@ -151,6 +159,9 @@ class _CheckoutScreenState extends ConsumerState<CheckoutScreen> {
               child: const Text('Discard rejected attempt'))
         ] else ...[
           Text('Deliver to', style: Theme.of(context).textTheme.titleLarge),
+          if (!loading && addresses.isEmpty)
+            const Notice('Add a delivery address with its map pin to continue.',
+                icon: Icons.location_off_outlined),
           for (final a in addresses)
             RadioListTile<String>(
                 value: a.id,
@@ -167,7 +178,7 @@ class _CheckoutScreenState extends ConsumerState<CheckoutScreen> {
           }),
           Field(note, 'Delivery note', requiredValue: false),
           const SizedBox(height: 20),
-          ActionButton('Get current total', () async {
+          ActionButton('Get delivery fee & total', () async {
             final result = await ref
                 .read(repositoryProvider)
                 .checkout({...request(), 'quote_only': true});
@@ -185,8 +196,25 @@ class _CheckoutScreenState extends ConsumerState<CheckoutScreen> {
               ListTile(
                   title: Text(pair.$1),
                   trailing: Text(money(integer(quote![pair.$2])))),
-            const Text(
-                'Pay by UPI after placing your order. Payment is confirmed only after review. Cash on delivery is unavailable.'),
+            const SectionTitle('Payment method'),
+            Card(
+                child: Column(children: [
+              const RadioListTile<String>(
+                  value: 'upi',
+                  groupValue: 'upi',
+                  onChanged: null,
+                  title: Text('UPI / QR code',
+                      style: TextStyle(fontWeight: FontWeight.w700)),
+                  subtitle: Text(
+                      'Pay after placing the order using the shown QR or UPI ID, then submit the 12-digit UPI reference. The order is confirmed only after our team verifies the payment.')),
+              const Divider(height: 1),
+              ListTile(
+                  enabled: false,
+                  leading: const Icon(Icons.radio_button_unchecked),
+                  title: const Text('Cash on Delivery'),
+                  subtitle: const Text('Not available yet'),
+                  trailing: const StatusChip('pending', label: 'Coming soon')),
+            ])),
             const SizedBox(height: 16),
             ActionButton(
                 'Place order • ${money(integer(quote!['total_payable_paise']))}',

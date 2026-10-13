@@ -48,7 +48,9 @@ class _RecordEditorState extends State<_RecordEditor> {
         values[f.key] = widget.initial[f.key] ?? f.choices!.first;
       } else {
         controllers[f.key] = TextEditingController(
-            text: widget.initial[f.key]?.toString() ?? '');
+            text: f.type == 'money'
+                ? rupeesText(widget.initial[f.key])
+                : widget.initial[f.key]?.toString() ?? '');
       }
     }
   }
@@ -78,12 +80,17 @@ class _RecordEditorState extends State<_RecordEditor> {
                     Padding(
                         padding: const EdgeInsets.symmetric(vertical: 8),
                         child: DropdownButtonFormField<String>(
-                            value: values[f.key],
+                            initialValue: values[f.key],
                             isExpanded: true,
                             decoration: InputDecoration(labelText: f.label),
                             items: f.choices!
                                 .map((v) => DropdownMenuItem(
-                                    value: v, child: Text(human(v))))
+                                    value: v,
+                                    child: Text(switch (v) {
+                                      'multi' => 'Optional add-on (pick any)',
+                                      'single_required' => 'Choose exactly one (e.g. size, portion)',
+                                      _ => human(v)
+                                    })))
                                 .toList(),
                             onChanged: (v) => values[f.key] = v))
                   else
@@ -91,9 +98,14 @@ class _RecordEditorState extends State<_RecordEditor> {
                         padding: const EdgeInsets.symmetric(vertical: 8),
                         child: TextFormField(
                             controller: controllers[f.key],
-                            decoration: InputDecoration(labelText: f.label),
+                            decoration: InputDecoration(
+                                labelText: f.label,
+                                prefixText: f.type == 'money' ? '₹ ' : null,
+                                helperText: f.type == 'money' ? 'Rupees, e.g. 120 or 120.50' : null),
                             maxLines: f.type == 'multiline' ? 3 : 1,
-                            keyboardType: ['int', 'decimal'].contains(f.type)
+                            keyboardType: f.type == 'money'
+                                ? const TextInputType.numberWithOptions(decimal: true)
+                                : ['int', 'decimal'].contains(f.type)
                                 ? const TextInputType.numberWithOptions(
                                     decimal: true, signed: true)
                                 : null,
@@ -105,6 +117,9 @@ class _RecordEditorState extends State<_RecordEditor> {
                                   (int.tryParse(v!) == null ||
                                       int.parse(v) < 0)) {
                                 return 'Enter a nonnegative whole number';
+                              }
+                              if (f.type == 'money' && parsePaise(v!) == null) {
+                                return 'Enter rupees like 120 or 120.50';
                               }
                               if (f.type == 'decimal' &&
                                   (double.tryParse(v!) == null ||
@@ -122,7 +137,9 @@ class _RecordEditorState extends State<_RecordEditor> {
                     final text = controllers[f.key]!.text.trim();
                     data[f.key] = text.isEmpty && f.optional
                         ? null
-                        : f.type == 'int'
+                        : f.type == 'money'
+                            ? parsePaise(text)
+                            : f.type == 'int'
                             ? int.parse(text)
                             : f.type == 'decimal'
                                 ? double.parse(text)

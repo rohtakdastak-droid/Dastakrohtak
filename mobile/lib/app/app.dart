@@ -17,6 +17,10 @@ import '../features/vendor/vendor_screen.dart';
 import '../features/delivery_partner/delivery_screen.dart';
 import '../features/admin/admin_screen.dart';
 import '../features/admin/settings_screen.dart';
+import '../features/admin/admin_partners.dart';
+import '../features/admin/admin_posters.dart';
+import '../features/support/support_screen.dart';
+import '../core/theme.dart';
 import '../features/settings/profile_screen.dart';
 import '../features/notifications/notifications_screen.dart';
 import '../features/notifications/push_service.dart';
@@ -90,15 +94,38 @@ class _DastakAppState extends ConsumerState<DastakApp> {
               builder: (c, s) => guard(
                   OptionsScreen(s.pathParameters['id']!), ['vendor', 'admin'])),
           GoRoute(
+              path: '/support',
+              builder: (c, s) => guard(const SupportScreen())),
+          GoRoute(
+              path: '/partner/apply',
+              builder: (c, s) => guard(const PartnerApplicationScreen(), ['customer', 'delivery'])),
+          GoRoute(
+              path: '/vendor/apply',
+              builder: (c, s) => guard(const VendorApplicationScreen(), ['customer', 'vendor'])),
+          GoRoute(
+              path: '/vendor/store/:id/orders',
+              builder: (c, s) => guard(OrdersScreen(vendorId: s.pathParameters['id']!), ['vendor', 'admin'])),
+          GoRoute(
+              path: '/vendor/store/:id/hours',
+              builder: (c, s) => guard(StoreHoursScreen(s.pathParameters['id']!), ['vendor', 'admin'])),
+          GoRoute(
+              path: '/vendor/store/:id/location',
+              builder: (c, s) => guard(StoreLocationScreen(s.pathParameters['id']!), ['vendor', 'admin'])),
+          GoRoute(
+              path: '/vendor/store/:id/reviews',
+              builder: (c, s) => guard(VendorReviewsScreen(s.pathParameters['id']!), ['vendor', 'admin'])),
+          GoRoute(
               path: '/delivery',
               builder: (c, s) => guard(const DeliveryScreen(), ['delivery'])),
           GoRoute(
               path: '/delivery/profile',
-              builder: (c, s) =>
-                  guard(const DeliveryProfileScreen(), ['delivery'])),
+              builder: (c, s) => guard(const PartnerApplicationScreen(), ['delivery'])),
           GoRoute(
               path: '/delivery/earnings',
               builder: (c, s) => guard(const EarningsScreen(), ['delivery'])),
+          GoRoute(
+              path: '/delivery/qr',
+              builder: (c, s) => guard(const PartnerQrScreen(), ['delivery'])),
           GoRoute(
               path: '/admin',
               builder: (c, s) => guard(const AdminScreen(), ['admin'])),
@@ -106,15 +133,35 @@ class _DastakAppState extends ConsumerState<DastakApp> {
               path: '/admin/vendors',
               builder: (c, s) => guard(const AdminVendorsScreen(), ['admin'])),
           GoRoute(
+              path: '/admin/vendors/:id',
+              builder: (c, s) => guard(AdminVendorDetailScreen(s.pathParameters['id']!), ['admin'])),
+          GoRoute(
+              path: '/admin/vendor-applications',
+              builder: (c, s) => guard(const AdminVendorApplicationsScreen(), ['admin'])),
+          GoRoute(
               path: '/admin/payments',
               builder: (c, s) => guard(const AdminPaymentsScreen(), ['admin'])),
           GoRoute(
               path: '/admin/partners',
-              builder: (c, s) => guard(const AdminPartnersScreen(), ['admin'])),
+              builder: (c, s) => guard(AdminPartnersScreen(initialStatus: s.uri.queryParameters['status']), ['admin'])),
+          GoRoute(
+              path: '/admin/partners/:id',
+              builder: (c, s) => guard(AdminPartnerDetailScreen(s.pathParameters['id']!), ['admin'])),
           GoRoute(
               path: '/admin/documents/:id',
-              builder: (c, s) => guard(
-                  AdminDocumentsScreen(s.pathParameters['id']!), ['admin'])),
+              builder: (c, s) => guard(AdminPartnerDetailScreen(s.pathParameters['id']!), ['admin'])),
+          GoRoute(
+              path: '/admin/customers',
+              builder: (c, s) => guard(const AdminCustomersScreen(), ['admin'])),
+          GoRoute(
+              path: '/admin/payouts',
+              builder: (c, s) => guard(const AdminPayoutsScreen(), ['admin'])),
+          GoRoute(
+              path: '/admin/posters',
+              builder: (c, s) => guard(const AdminPostersScreen(), ['admin'])),
+          GoRoute(
+              path: '/admin/reviews',
+              builder: (c, s) => guard(const AdminReviewsScreen(), ['admin'])),
           GoRoute(
               path: '/admin/settings',
               builder: (c, s) => guard(const AdminSettingsScreen(), ['admin'])),
@@ -126,7 +173,7 @@ class _DastakAppState extends ConsumerState<DastakApp> {
             body: Center(
                 child: FilledButton(
                     onPressed: () => c.go('/'),
-                    child: const Text('Return to Dastak')))));
+                    child: const Text('Back to home')))));
     auth = ref
         .read(repositoryProvider)
         .client
@@ -184,100 +231,10 @@ class _DastakAppState extends ConsumerState<DastakApp> {
   @override
   Widget build(BuildContext context) => MaterialApp.router(
       scaffoldMessengerKey: messenger,
-      title: 'Dastak',
+      title: 'Dastak – Local Delivery',
       debugShowCheckedModeBanner: false,
       routerConfig: router,
-      theme: ThemeData(
-          useMaterial3: true,
-          colorScheme: ColorScheme.fromSeed(
-              seedColor: const Color(0xFF0EA5E9),
-              primary: const Color(0xFF0EA5E9),
-              secondary: const Color(0xFF10B981),
-              error: const Color(0xFFEF4444),
-              background: Colors.white,
-              surface: Colors.white,
-              onPrimary: Colors.white,
-              onBackground: const Color(0xFF0F172A),
-              onSurface: const Color(0xFF0F172A),
-              brightness: Brightness.light),
-          scaffoldBackgroundColor: Colors.white,
-          appBarTheme: const AppBarTheme(
-              backgroundColor: Colors.white,
-              foregroundColor: Color(0xFF0F172A),
-              centerTitle: false,
-              elevation: 0,
-              scrolledUnderElevation: 0,
-              titleTextStyle: TextStyle(
-                  color: Color(0xFF0F172A),
-                  fontWeight: FontWeight.w800,
-                  fontSize: 20)),
-          textTheme: const TextTheme(
-              headlineLarge: TextStyle(
-                  color: Color(0xFF0F172A),
-                  fontWeight: FontWeight.w800,
-                  fontSize: 32,
-                  height: 1.15),
-              headlineMedium: TextStyle(
-                  color: Color(0xFF0F172A),
-                  fontWeight: FontWeight.w800,
-                  fontSize: 24),
-              titleLarge: TextStyle(
-                  color: Color(0xFF0F172A),
-                  fontWeight: FontWeight.w700,
-                  fontSize: 18),
-              titleMedium: TextStyle(
-                  color: Color(0xFF0F172A),
-                  fontWeight: FontWeight.w700,
-                  fontSize: 15),
-              bodyMedium: TextStyle(color: Color(0xFF374151))),
-          inputDecorationTheme: InputDecorationTheme(
-              filled: true,
-              fillColor: const Color(0xFFF8FAFC),
-              hintStyle: const TextStyle(color: Color(0xFF9CA3AF)),
-              border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(14),
-                  borderSide: BorderSide.none),
-              enabledBorder: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(14),
-                  borderSide: BorderSide.none),
-              focusedBorder: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(14),
-                  borderSide: const BorderSide(
-                      color: Color(0xFF0EA5E9), width: 1.5))),
-          cardTheme: CardTheme(
-              elevation: 0,
-              color: Colors.white,
-              surfaceTintColor: Colors.transparent,
-              shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(18),
-                  side: const BorderSide(color: Color(0xFFEEF2F6)))),
-          filledButtonTheme: FilledButtonThemeData(
-              style: FilledButton.styleFrom(
-                  backgroundColor: const Color(0xFF0EA5E9),
-                  foregroundColor: Colors.white,
-                  minimumSize: const Size.fromHeight(52),
-                  padding: const EdgeInsets.symmetric(
-                      horizontal: 20, vertical: 14),
-                  textStyle: const TextStyle(
-                      fontWeight: FontWeight.w700, fontSize: 15),
-                  shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(14)))),
-          outlinedButtonTheme: OutlinedButtonThemeData(
-              style: OutlinedButton.styleFrom(
-                  minimumSize: const Size.fromHeight(48),
-                  side: const BorderSide(color: Color(0xFFE5E7EB)),
-                  foregroundColor: const Color(0xFF0F172A),
-                  shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(14)))),
-          navigationBarTheme: const NavigationBarThemeData(
-              backgroundColor: Colors.white,
-              indicatorColor: Color(0xFFE0F2FE),
-              elevation: 0,
-              surfaceTintColor: Colors.transparent,
-              labelTextStyle: WidgetStatePropertyAll(TextStyle(
-                  fontSize: 11,
-                  fontWeight: FontWeight.w600,
-                  color: Color(0xFF0F172A))),
-              iconTheme: WidgetStatePropertyAll(
-                  IconThemeData(color: Color(0xFF0F172A))))));
+      themeMode: ref.watch(themeModeProvider),
+      theme: buildTheme(Brightness.light),
+      darkTheme: buildTheme(Brightness.dark));
 }

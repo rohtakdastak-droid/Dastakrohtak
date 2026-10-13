@@ -5,6 +5,7 @@ import '../../core/models.dart';
 import '../../core/providers.dart';
 import '../../core/widgets.dart';
 import '../../core/editor.dart';
+import '../../core/theme.dart';
 
 class AdminSettingsScreen extends ConsumerStatefulWidget {
   const AdminSettingsScreen({super.key});
@@ -27,7 +28,8 @@ class _AdminSettingsScreenState extends ConsumerState<AdminSettingsScreen> {
       r.client.from('payment_settings').select().eq('id', true).single(),
       r.rows('delivery_rate_rules', sort: 'min_km', ascending: true),
       r.client.from('delivery_overflow_rule').select().eq('id', true).single(),
-      r.rows('app_settings', sort: 'key')
+      r.rows('app_settings', sort: 'key'),
+      r.rows('payment_settings_history').catchError((Object _) => <Json>[])
     ]);
   }
 
@@ -46,6 +48,7 @@ class _AdminSettingsScreenState extends ConsumerState<AdminSettingsScreen> {
               final rates = List<Json>.from(s.data![1]);
               final overflow = s.data![2] as Json;
               final settings = List<Json>.from(s.data![3]);
+              final history = List<Json>.from(s.data![4]);
               return ListView(padding: const EdgeInsets.all(20), children: [
                 Card(
                     child: Padding(
@@ -69,8 +72,32 @@ class _AdminSettingsScreenState extends ConsumerState<AdminSettingsScreen> {
                                       fontSize: 14,
                                       color: Color(0xFF0F172A))),
                               const SizedBox(height: 4),
+                              SwitchListTile(
+                                  contentPadding: EdgeInsets.zero,
+                                  title: const Text('Accept UPI / QR payments'),
+                                  subtitle: Text(payment['upi_enabled'] == false
+                                      ? 'Paused: checkout is blocked until you turn this on'
+                                      : 'Customers can place orders and pay by UPI'),
+                                  value: payment['upi_enabled'] != false,
+                                  onChanged: (v) async {
+                                    if (!v &&
+                                        !await confirm(context, 'Pause online payments?',
+                                            'New orders cannot be placed while payments are paused.',
+                                            yes: 'Pause', destructive: true)) {
+                                      return;
+                                    }
+                                    if (context.mounted &&
+                                        await perform(context, () => repo.client.from('payment_settings').update({'upi_enabled': v}).eq('id', true))) {
+                                      setState(load);
+                                    }
+                                  }),
+                              if (payment['qr_image_path'] != null)
+                                Center(
+                                    child: SizedBox(
+                                        width: 160,
+                                        child: Photo(repo.imageUrl(payment['qr_image_path'], bucket: 'payment-qr'), height: 160, placeholder: Icons.qr_code_2))),
                               const Text(
-                                  'Manual verification only. COD and gateway payments are unavailable.',
+                                  'Manual verification only. Showing a QR is not proof of payment. COD is "Coming soon" and gateway payments are not configured.',
                                   style: TextStyle(
                                       fontSize: 12, color: Color(0xFF6B7280))),
                               const SizedBox(height: 14),
@@ -150,8 +177,8 @@ class _AdminSettingsScreenState extends ConsumerState<AdminSettingsScreen> {
                                       type: 'decimal'),
                                   EditField('max_km', 'Maximum km (inclusive)',
                                       type: 'decimal'),
-                                  EditField('fee_paise', 'Fee (paise)',
-                                      type: 'int')
+                                  EditField('fee_paise', 'Fee',
+                                      type: 'money')
                                 ], save: (d) async {
                               final next = [
                                 for (final r in rates)
@@ -171,11 +198,11 @@ class _AdminSettingsScreenState extends ConsumerState<AdminSettingsScreen> {
                       initial: overflow,
                       fields: const [
                         EditField('ceiling_km', 'Ceiling km', type: 'decimal'),
-                        EditField('base_fee_paise', 'Base fee (paise)',
-                            type: 'int'),
+                        EditField('base_fee_paise', 'Base fee',
+                            type: 'money'),
                         EditField(
-                            'per_km_paise', 'Additional fee per km (paise)',
-                            type: 'int')
+                            'per_km_paise', 'Additional fee per km',
+                            type: 'money')
                       ], save: (d) async {
                     if (decimal(d['ceiling_km']) !=
                         decimal(rates.last['max_km'])) {
@@ -189,13 +216,27 @@ class _AdminSettingsScreenState extends ConsumerState<AdminSettingsScreen> {
                   if (mounted) setState(load);
                 }, icon: Icons.edit_outlined)),
                 const SizedBox(height: 24),
+                const SectionTitle('Earning, commission & tax rules'),
+                Text('Partner earning = delivery fee × partner % + bonus. Commission is a % of restaurant food sales, used in reports and settlement breakdowns.',
+                    style: TextStyle(fontSize: 12, color: context.muted)),
                 for (final setting in settings.where((j) => [
+                      'partner_earning_percent',
+                      'partner_earning_bonus_paise',
+                      'platform_commission_percent',
                       'tax_percent',
                       'cancellation_window_minutes'
                     ].contains(j['key'])))
                   ListTile(
-                      title: Text(human(setting['key'])),
-                      subtitle: Text('${setting['value']}'),
+                      title: Text(switch ('${setting['key']}') {
+                        'partner_earning_bonus_paise' => 'Partner bonus per delivery',
+                        'partner_earning_percent' => 'Partner share of delivery fee (%)',
+                        'platform_commission_percent' => 'Platform commission (%)',
+                        'tax_percent' => 'Tax (%)',
+                        _ => statusLabel('${setting['key']}')
+                      }),
+                      subtitle: Text('${setting['key']}'.endsWith('_paise')
+                          ? money(integer(setting['value']))
+                          : '${setting['value']}'),
                       trailing: IconButton(
                           tooltip: 'Edit setting',
                           icon: const Icon(Icons.edit),
@@ -205,13 +246,14 @@ class _AdminSettingsScreenState extends ConsumerState<AdminSettingsScreen> {
                                 initial: {
                                   'value': setting['value']
                                 },
-                                fields: const [
-                                  EditField('value', 'Value', type: 'int')
+                                fields: [
+                                  EditField('value', 'Value',
+                                      type: '${setting['key']}'.endsWith('_paise') ? 'money' : 'int')
                                 ], save: (d) async {
-                              if (setting['key'] == 'tax_percent' &&
+                              if (setting['key'].toString().endsWith('percent') &&
                                   d['value'] > 100) {
                                 throw StateError(
-                                    'Tax must be between 0 and 100');
+                                    'Percentages must be between 0 and 100');
                               }
                               await repo.save('app_settings',
                                   {'value': d['value'], 'updated_by': repo.uid},
@@ -219,6 +261,20 @@ class _AdminSettingsScreenState extends ConsumerState<AdminSettingsScreen> {
                             });
                             if (mounted) setState(load);
                           })),
+                if (history.isNotEmpty) ...[
+                  const SectionTitle('Payment configuration history'),
+                  for (final h in history.take(15))
+                    ListTile(
+                        dense: true,
+                        contentPadding: EdgeInsets.zero,
+                        leading: const Icon(Icons.history, size: 18),
+                        title: Text(stamp(h['created_at'])),
+                        subtitle: Text([
+                          for (final k in ['upi_enabled', 'upi_vpa', 'payee_name', 'qr_image_path', 'instructions'])
+                            if ('${(h['old_value'] as Map?)?[k]}' != '${(h['new_value'] as Map?)?[k]}')
+                              '$k: ${(h['old_value'] as Map?)?[k] ?? '—'} → ${(h['new_value'] as Map?)?[k] ?? '—'}'
+                        ].join('\n'))),
+                ],
               ]);
             }));
   }

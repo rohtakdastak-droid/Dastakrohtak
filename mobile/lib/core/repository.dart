@@ -91,6 +91,38 @@ class DastakRepository {
         .toList();
   }
 
+  Future<List<Json>> discover(
+      {double? lat, double? lng, String search = '', int page = 0}) async {
+    final data = await rpc('discover_stores', {
+      'p_lat': lat,
+      'p_lng': lng,
+      'p_search': search.replaceAll(RegExp(r'[%_]'), '').trim(),
+      'p_category': 'food',
+      'p_page': page
+    });
+    return List<Json>.from(
+        (data as List).map((j) => Map<String, dynamic>.from(j as Map)));
+  }
+
+  Future<Json> rpcJson(String name, [Json params = const {}]) async {
+    final data = await rpc(name, params);
+    if (data == null) return {};
+    return Map<String, dynamic>.from(data as Map);
+  }
+
+  Future<List<Json>> rpcList(String name, [Json params = const {}]) async {
+    final data = await rpc(name, params);
+    if (data == null) return [];
+    return List<Json>.from(
+        (data as List).map((j) => Map<String, dynamic>.from(j as Map)));
+  }
+
+  Future<String> signedUrl(String bucket, String path, {int seconds = 120}) =>
+      client.storage
+          .from(bucket)
+          .createSignedUrl(path, seconds)
+          .timeout(const Duration(seconds: 20));
+
   Future<List<Product>> products(String vendor, {int page = 0}) async =>
       (await rows('products',
               select: '*,product_options(*)',

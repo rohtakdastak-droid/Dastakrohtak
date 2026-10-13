@@ -44,3 +44,26 @@ empty migration ledger; do not replay 0001–0011 against the current database.
 
 Secrets remain outside tracked source. Do not publish config/*.private.*,
 android/key.properties, native Firebase configuration or signing material.
+
+## Migration 0012 — Local Delivery upgrade (13 October 2026)
+
+Applied to the live project with explicit user approval, after a rollback-only run on
+live succeeded. Additive only: existing orders (4) and vendors (4) were unchanged.
+Applied with `supabase db query --linked -f supabase/migrations/0012_local_delivery_upgrade.sql`
+(the migration ledger is still empty — do not `db push`).
+
+Verified afterwards through the public REST API: `discover_stores` returns real menu
+previews, `active_posters` returns an empty list, admin RPCs reject anonymous callers.
+Local PGlite suite: 43 checks pass. Flutter: analyzer 0 errors, 25 tests pass.
+
+Data note: the 4 live vendors are seed restaurants pinned in Jaipur, so location-filtered
+discovery and checkout correctly exclude Rohtak addresses until real restaurants are
+added or their map locations are corrected by an admin.
+
+## Migrations 0013 (Half/Full plate) and 0014 (account deletion) — 13 October 2026
+
+Applied with explicit user approval after a combined rollback-only run on live. The run
+confirmed function owner `postgres` may update auth.users and delete auth identities/sessions.
+Additive; orders (4), vendors (4) and products (7) unchanged. Anonymous callers are refused by
+`delete_my_account` and `set_item_portions` through the public API. Local PGlite suite: 46 checks pass.
+Google Play also requires a web link for deletion requests; that page does not exist yet.

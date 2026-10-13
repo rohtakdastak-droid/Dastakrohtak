@@ -1,0 +1,113 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Privacy Policy – Dastak</title>
+<meta name="description" content="How the Dastak local delivery app collects, uses, shares and protects personal data.">
+<style>
+  :root { --ink:#0f172a; --muted:#475569; --line:#e2e8f0; --brand:#0369a1; --bg:#ffffff; --soft:#f0f9ff; }
+  @media (prefers-color-scheme: dark) { :root { --ink:#e2e8f0; --muted:#94a3b8; --line:#1e293b; --brand:#38bdf8; --bg:#0b1220; --soft:#0f1d33; } }
+  * { box-sizing: border-box; }
+  body { margin:0; background:var(--bg); color:var(--ink); font:16px/1.65 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif; }
+  main { max-width: 760px; margin: 0 auto; padding: 32px 16px 64px; }
+  h1 { font-size: 1.9rem; margin: 0 0 4px; }
+  h2 { font-size: 1.2rem; margin: 32px 0 8px; color: var(--brand); }
+  p, li { color: var(--ink); }
+  .muted { color: var(--muted); font-size: .95rem; }
+  .box { background: var(--soft); border: 1px solid var(--line); border-radius: 12px; padding: 14px 16px; }
+  table { width: 100%; border-collapse: collapse; font-size: .95rem; }
+  th, td { text-align: left; vertical-align: top; border-bottom: 1px solid var(--line); padding: 8px 6px; }
+  a { color: var(--brand); }
+  nav a { margin-right: 12px; }
+</style>
+</head>
+<body>
+<main>
+<nav class="muted"><a href="#summary">Summary</a><a href="#delete">Delete your account</a><a href="#contact">Contact</a></nav>
+<h1>Privacy Policy</h1>
+<p class="muted">Dastak – Local Delivery (Android app and website) · Operated by Dastak, Rohtak, Haryana, India<br>
+Effective date: 13 October 2026 · Last updated: 13 October 2026</p>
+
+<div class="box" id="summary">
+<strong>In short:</strong> we collect only what is needed to take, deliver and pay for food orders, to verify delivery partners and
+restaurants, and to keep accounts safe. We do not sell your data and we do not show ads. You can delete your account inside the
+app at any time (Account → Delete my account).
+</div>
+
+<h2>1. Who we are</h2>
+<p>Dastak is a local food-ordering and delivery service in Rohtak that connects customers, restaurants and cafes, and delivery partners.
+In this policy "Dastak", "we" and "us" means Dastak, Rohtak. For any privacy question or complaint, write to
+<a href="mailto:rohtakdastak@gmail.com">rohtakdastak@gmail.com</a>.</p>
+
+<h2>2. Data we collect</h2>
+<table>
+<tr><th>Who</th><th>What we collect</th><th>Why</th></tr>
+<tr><td>Everyone with an account</td><td>Name, email address, mobile number, password (stored only as a secure hash by our login provider), role (customer, restaurant, delivery partner, admin).</td><td>Create and secure your account, contact you about orders.</td></tr>
+<tr><td>Customers</td><td>Saved delivery addresses with a map pin, delivery instructions, order items and notes, order history, ratings and reviews, support messages.</td><td>Deliver your order, show your history, handle complaints.</td></tr>
+<tr><td>Payments</td><td>The 12-digit UPI reference (UTR) you submit and the order amount. You pay in your own UPI app; we never receive your card, bank account or UPI PIN.</td><td>Manually verify that a payment was received.</td></tr>
+<tr><td>Location</td><td>Your phone's location only when you tap "Use my current location" (or choose a point on the map). The app does not track customers in the background.</td><td>Show restaurants that deliver to you and pin your address.</td></tr>
+<tr><td>Delivery partners</td><td>Full name, mobile, email, residential address, city and service area, emergency contact, vehicle type and registration number, the last 4 characters of your Aadhaar and driving licence, photos of your Aadhaar, licence, vehicle RC and a profile selfie, payout UPI ID or the last 4 digits of your bank account and IFSC, payout QR image, deliveries and earnings, payout records, ratings.</td><td>Verify your identity and eligibility, assign deliveries, calculate and pay earnings.</td></tr>
+<tr><td>Delivery partners – live location</td><td>Your current location every ~20 seconds, only during an active delivery and only while you switch on "Share live location". Only the latest point is kept and it is deleted when the delivery ends.</td><td>Let the customer and restaurant see where their order is.</td></tr>
+<tr><td>Restaurant owners</td><td>Restaurant name, owner name, contact number and email, address and map location, opening hours, menu, prices and photos, sales and order records.</td><td>List your restaurant and process its orders and settlements.</td></tr>
+<tr><td>Device</td><td>A push-notification token if you allow notifications.</td><td>Send order and account notifications.</td></tr>
+</table>
+<p>We do not ask for your full Aadhaar or licence number in the app. Do not type them anywhere in the app.</p>
+
+<h2>3. Who can see your data</h2>
+<ul>
+<li><strong>Restaurants</strong> see the items, notes and delivery address of orders placed with them, and the name, phone and vehicle number of the partner delivering their order.</li>
+<li><strong>Delivery partners</strong> see the pickup address, delivery address, item count and delivery note of orders they accept.</li>
+<li><strong>Customers</strong> see the live location of the partner delivering their order, only while it is being delivered.</li>
+<li><strong>Public reviews</strong> show your rating, comment and only the first letter of your name.</li>
+<li><strong>Authorised Dastak administrators</strong> can see account, order, payment and partner records to run the service. Partner identity documents and payout QR codes are kept in private storage and are opened only by administrators through links that expire within minutes. Document checks are a manual review by our staff, not a government verification.</li>
+</ul>
+
+<h2>4. Service providers</h2>
+<p>We use these providers to run the app. They process data on our behalf; servers may be located outside India.</p>
+<ul>
+<li><strong>Supabase</strong> – database, login, file storage and realtime updates.</li>
+<li><strong>Google Firebase Cloud Messaging</strong> – push notifications.</li>
+<li><strong>OpenStreetMap</strong> – map tiles. Your device requests map images directly from OpenStreetMap servers, which receive your IP address and the map area shown.</li>
+<li><strong>Google Maps Platform</strong> – when enabled, our server sends the restaurant and delivery coordinates to Google to calculate the road distance for the delivery fee. Tapping "Navigate" opens Google Maps on the partner's phone.</li>
+<li><strong>Vercel</strong> – hosts our website.</li>
+</ul>
+<p>We do not sell personal data, share it for advertising, or use it to train AI models. We may disclose data if required by Indian law or a valid order of a court or government authority.</p>
+
+<h2>5. How long we keep data</h2>
+<ul>
+<li>Account, address and partner profile data: until you delete your account.</li>
+<li>Partner identity documents and payout QR: until your account is deleted, or earlier on request once verification is no longer needed.</li>
+<li>Partner live location: only the latest point, deleted when the delivery ends.</li>
+<li>Orders, payments, delivery earnings and payouts: kept as required by Indian tax and accounting laws (generally up to 8 years). After you delete your account these records no longer show your name, phone or email.</li>
+</ul>
+
+<h2 id="delete">6. Deleting your account</h2>
+<p>In the app: <strong>Account → Delete my account</strong>, then type <code>DELETE</code>. If you cannot use the app, see our
+<a href="/delete-account.html">account deletion page</a>. Deletion removes your name, phone, email, saved addresses, notifications,
+support chats, partner documents and payout QR, and permanently disables sign-in. It cannot be completed while an order, payment
+verification, active delivery or unpaid earning is pending; the app tells you what to finish first.</p>
+
+<h2>7. Your rights</h2>
+<p>Under the Digital Personal Data Protection Act, 2023 and other applicable Indian law, you may ask to access, correct or erase your
+personal data, withdraw consent, and nominate another person to act for you. Most details can be edited in the app. For anything
+else, email <a href="mailto:rohtakdastak@gmail.com">rohtakdastak@gmail.com</a> from your registered email. We aim to reply within 30 days.
+If you are not satisfied, you may complain to the Data Protection Board of India.</p>
+
+<h2>8. Security</h2>
+<p>Data travels over encrypted HTTPS connections. Database access is restricted by per-user rules so customers, restaurants and
+partners can see only their own records. Identity documents are stored privately. No system is perfectly secure; if a breach
+affects you, we will inform you and the authorities as the law requires.</p>
+
+<h2>9. Children</h2>
+<p>Dastak is not meant for anyone under 18. Delivery partners and restaurant owners must be adults.</p>
+
+<h2>10. Changes</h2>
+<p>We will update this page when our practices change and show the new date at the top. Important changes will also be announced in the app.</p>
+
+<h2 id="contact">11. Contact and grievance officer</h2>
+<p>Grievance Officer, Dastak, Rohtak, Haryana, India<br>
+Email: <a href="mailto:rohtakdastak@gmail.com">rohtakdastak@gmail.com</a></p>
+</main>
+</body>
+</html>

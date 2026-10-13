@@ -47,8 +47,9 @@ class SetupApp extends StatelessWidget {
                   child: Padding(
                       padding: const EdgeInsets.all(32),
                       child: Column(mainAxisSize: MainAxisSize.min, children: [
-                        const Icon(Icons.doorbell_rounded,
-                            size: 64, color: Colors.deepOrange),
+                        ClipRRect(
+                            borderRadius: BorderRadius.circular(20),
+                            child: Image.asset('assets/logo.png', width: 72, height: 72)),
                         const SizedBox(height: 16),
                         const Text('Dastak',
                             style: TextStyle(

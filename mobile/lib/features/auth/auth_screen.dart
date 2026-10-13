@@ -75,8 +75,7 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
                           child: Column(
                               crossAxisAlignment: CrossAxisAlignment.stretch,
                               children: [
-                                const Icon(Icons.doorbell_rounded,
-                                    size: 64, color: Color(0xFF0EA5E9)),
+                                const Center(child: BrandMark(size: 72)),
                                 const SizedBox(height: 20),
                                 Text(
                                     widget.recovery
@@ -88,7 +87,7 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
                                 const SizedBox(height: 12),
                                 Text(widget.recovery
                                     ? 'Choose a strong password.'
-                                    : 'Welcome to Dastak. Your neighbourhood, delivered.'),
+                                    : 'Welcome to Dastak — Local Delivery. Your neighbourhood, delivered.'),
                                 const SizedBox(height: 24),
                                 if (!widget.recovery) ...[
                                   if (signup) ...[

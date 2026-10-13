@@ -37,7 +37,7 @@ class CartScreen extends ConsumerWidget {
                                           context,
                                           () => ref
                                               .read(cartProvider.notifier)
-                                              .quantity(l.product.id,
+                                              .quantity(l.key,
                                                   l.quantity - 1)),
                                       icon: const Icon(
                                           Icons.remove_circle_outline)),
@@ -48,7 +48,7 @@ class CartScreen extends ConsumerWidget {
                                           context,
                                           () => ref
                                               .read(cartProvider.notifier)
-                                              .quantity(l.product.id,
+                                              .quantity(l.key,
                                                   l.quantity + 1)),
                                       icon:
                                           const Icon(Icons.add_circle_outline))

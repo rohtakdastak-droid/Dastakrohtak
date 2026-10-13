@@ -34,12 +34,10 @@ class CartController extends StateNotifier<List<CartLine>> {
       }
       state = [];
     }
-    final index = state.indexWhere((l) => l.product.id == p.id);
+    final probe = CartLine(p, 1, options);
+    final index = state.indexWhere((l) => l.key == probe.key);
     final qty = index < 0 ? 1 : state[index].quantity + 1;
-    if (qty > 99 || (p.stock != null && qty > p.stock!)) {
-      throw StateError('Requested quantity is unavailable');
-    }
-    // One product line: options apply to every unit; explain in the option picker.
+    _checkStock(p, probe.key, qty);
     final next = CartLine(p, qty, options);
     state = index < 0
         ? [...state, next]
@@ -50,15 +48,22 @@ class CartController extends StateNotifier<List<CartLine>> {
     await _save();
   }
 
-  Future<void> quantity(String id, int quantity) async {
-    final line = state.firstWhere((l) => l.product.id == id);
-    if (quantity > 99 ||
-        (line.product.stock != null && quantity > line.product.stock!)) {
+  /// Stock is shared by every line of the same product (e.g. half and full plates).
+  void _checkStock(Product p, String key, int quantity) {
+    final others = state
+        .where((l) => l.product.id == p.id && l.key != key)
+        .fold<int>(0, (s, l) => s + l.quantity);
+    if (quantity > 99 || (p.stock != null && quantity + others > p.stock!)) {
       throw StateError('Requested quantity is unavailable');
     }
+  }
+
+  Future<void> quantity(String key, int quantity) async {
+    final line = state.firstWhere((l) => l.key == key);
+    _checkStock(line.product, key, quantity);
     state = [
       for (final l in state)
-        if (l.product.id != id)
+        if (l.key != key)
           l
         else if (quantity > 0)
           CartLine(l.product, quantity, l.options)

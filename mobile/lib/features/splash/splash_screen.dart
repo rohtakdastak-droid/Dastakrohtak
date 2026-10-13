@@ -1,14 +1,18 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
+import '../../core/models.dart';
+import '../../core/providers.dart';
+import '../customer/profile_menu.dart';
 
-class SplashScreen extends StatefulWidget {
+class SplashScreen extends ConsumerStatefulWidget {
   const SplashScreen({super.key});
   @override
-  State<SplashScreen> createState() => _SplashScreenState();
+  ConsumerState<SplashScreen> createState() => _SplashScreenState();
 }
 
-class _SplashScreenState extends State<SplashScreen>
+class _SplashScreenState extends ConsumerState<SplashScreen>
     with TickerProviderStateMixin {
   late final AnimationController entry = AnimationController(
       vsync: this, duration: const Duration(milliseconds: 1800))
@@ -20,8 +24,12 @@ class _SplashScreenState extends State<SplashScreen>
   @override
   void initState() {
     super.initState();
-    Future.delayed(const Duration(milliseconds: 2400), () {
-      if (mounted) context.go('/home');
+    Future.wait([
+      Future<void>.delayed(const Duration(milliseconds: 2400)),
+      ref.read(accountProvider.future).timeout(const Duration(seconds: 6)).then<Object?>((a) => a, onError: (Object _) => null),
+    ]).then((results) {
+      final account = results[1] as Account?;
+      if (mounted) context.go(workspaceRoute(account?.role ?? 'customer'));
     });
   }
 
@@ -47,11 +55,11 @@ class _SplashScreenState extends State<SplashScreen>
               Positioned(
                   top: -60,
                   right: -40,
-                  child: _blob(220, Colors.white.withOpacity(0.08))),
+                  child: _blob(220, Colors.white.withValues(alpha: 0.08))),
               Positioned(
                   bottom: -40,
                   left: -40,
-                  child: _blob(260, Colors.white.withOpacity(0.06))),
+                  child: _blob(260, Colors.white.withValues(alpha: 0.06))),
               Center(
                   child: AnimatedBuilder(
                       animation: entry,
@@ -73,26 +81,28 @@ class _SplashScreenState extends State<SplashScreen>
                                       child: Opacity(
                                           opacity: crownT,
                                           child: Container(
-                                              width: 96,
-                                              height: 96,
+                                              width: 128,
+                                              height: 128,
                                               decoration: BoxDecoration(
                                                   color: Colors.white,
                                                   borderRadius:
-                                                      BorderRadius.circular(28),
+                                                      BorderRadius.circular(32),
                                                   boxShadow: [
                                                     BoxShadow(
                                                         color: Colors.black
-                                                            .withOpacity(0.18),
-                                                        blurRadius: 24,
+                                                            .withValues(alpha: 0.22),
+                                                        blurRadius: 28,
                                                         offset:
-                                                            const Offset(0, 10))
+                                                            const Offset(0, 12))
                                                   ]),
-                                              child: const Center(
-                                                  child: Icon(
-                                                      Icons.doorbell_rounded,
-                                                      size: 56,
-                                                      color:
-                                                          Color(0xFF0EA5E9))))))),
+                                              child: ClipRRect(
+                                                  borderRadius:
+                                                      BorderRadius.circular(32),
+                                                  child: Image.asset(
+                                                      'assets/logo.png',
+                                                      width: 128,
+                                                      height: 128,
+                                                      fit: BoxFit.cover)))))),
                               const SizedBox(height: 24),
                               Opacity(
                                   opacity: logoT,
@@ -107,7 +117,7 @@ class _SplashScreenState extends State<SplashScreen>
                                               shadows: [
                                                 Shadow(
                                                     color: Colors.black
-                                                        .withOpacity(0.25),
+                                                        .withValues(alpha: 0.25),
                                                     blurRadius: 18,
                                                     offset: const Offset(0, 4))
                                               ])))),
@@ -124,7 +134,7 @@ class _SplashScreenState extends State<SplashScreen>
                                                 width: 24,
                                                 height: 1,
                                                 color: Colors.white
-                                                    .withOpacity(0.6)),
+                                                    .withValues(alpha: 0.6)),
                                             const SizedBox(width: 10),
                                             Text('Dil Se Ghar Tak',
                                                 style: GoogleFonts.dancingScript(
@@ -138,15 +148,15 @@ class _SplashScreenState extends State<SplashScreen>
                                                 width: 24,
                                                 height: 1,
                                                 color: Colors.white
-                                                    .withOpacity(0.6))
+                                                    .withValues(alpha: 0.6))
                                           ]))),
                               const SizedBox(height: 6),
                               Opacity(
                                   opacity: taglineT,
                                   child: Text(
-                                      "ROHTAK'S LOCAL DELIVERY",
+                                      'LOCAL DELIVERY',
                                       style: GoogleFonts.poppins(
-                                          color: Colors.white.withOpacity(0.75),
+                                          color: Colors.white.withValues(alpha: 0.75),
                                           fontSize: 11,
                                           fontWeight: FontWeight.w600,
                                           letterSpacing: 3.5))),

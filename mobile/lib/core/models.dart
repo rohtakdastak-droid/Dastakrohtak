@@ -31,17 +31,20 @@ class Store {
 }
 
 class ProductOption {
-  final String id, group, label;
+  final String id, group, label, selection;
   final int delta;
   ProductOption(Json j)
       : id = j['id'],
         group = j['group_name'],
         label = j['label'],
+        selection = j['selection'] ?? 'multi',
         delta = integer(j['price_delta_paise']);
+  bool get required => selection == 'single_required';
   Json toJson() => {
         'id': id,
         'group_name': group,
         'label': label,
+        'selection': selection,
         'price_delta_paise': delta
       };
 }
@@ -67,6 +70,26 @@ class Product {
             .where((o) => o['is_available'] != false)
             .map((o) => ProductOption(Map<String, dynamic>.from(o)))
             .toList();
+  /// Required single-choice groups such as Portion: Half plate / Full plate.
+  Map<String, List<ProductOption>> get choiceGroups {
+    final groups = <String, List<ProductOption>>{};
+    for (final o in options.where((o) => o.required)) {
+      groups.putIfAbsent(o.group, () => []).add(o);
+    }
+    return groups;
+  }
+
+  /// "Half plate ₹120 • Full plate ₹200" for single-group items, otherwise the plain price.
+  String get priceText {
+    final groups = choiceGroups;
+    if (groups.length == 1) {
+      return groups.values.first.map((o) => '${o.label} ${money(price + o.delta)}').join(' • ');
+    }
+    if (groups.isEmpty) return money(price);
+    final least = groups.values.fold<int>(0, (s, g) => s + g.map((o) => o.delta).reduce((a, b) => a < b ? a : b));
+    return 'from ${money(price + least)}';
+  }
+
   Json toJson() => {
         'id': id,
         'vendor_id': vendorId,
@@ -90,8 +113,12 @@ class CartLine {
       throw ArgumentError('Quantity must be between 1 and 99');
     }
   }
-  int get total =>
-      (product.price + options.fold<int>(0, (s, o) => s + o.delta)) * quantity;
+  /// Same product with a different option set (e.g. Half vs Full plate) is a separate line.
+  String get key => options.isEmpty
+      ? product.id
+      : '${product.id}|${(options.map((o) => o.id).toList()..sort()).join(',')}';
+  int get unitPrice => product.price + options.fold<int>(0, (s, o) => s + o.delta);
+  int get total => unitPrice * quantity;
   Json toJson() => {
         'product': product.toJson(),
         'quantity': quantity,
@@ -151,3 +178,70 @@ bool validCoordinates(double? lat, double? lng) =>
     lat <= 90 &&
     lng >= -180 &&
     lng <= 180;
+
+const weekdayNames = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
+
+DateTime _istNow() {
+  final u = DateTime.now().toUtc().add(const Duration(hours: 5, minutes: 30));
+  return DateTime(u.year, u.month, u.day, u.hour, u.minute);
+}
+
+String _ymd(DateTime d) =>
+    '${d.year}-${d.month.toString().padLeft(2, '0')}-${d.day.toString().padLeft(2, '0')}';
+
+/// Next opening time for schedules in Asia/Kolkata; null when unknown.
+String? nextOpening(dynamic hours) {
+  if (hours is! Map || hours['weekly'] is! Map || (hours['weekly'] as Map).isEmpty) {
+    return null;
+  }
+  if ((hours['timezone'] ?? 'Asia/Kolkata') != 'Asia/Kolkata') return null;
+  final weekly = hours['weekly'] as Map;
+  final holidays = ((hours['holidays'] as List?) ?? []).map((e) => '$e').toSet();
+  final now = _istNow();
+  for (var d = 0; d < 8; d++) {
+    final day = DateTime(now.year, now.month, now.day).add(Duration(days: d));
+    if (holidays.contains(_ymd(day))) continue;
+    final opens = ((weekly['${day.weekday}'] as List?) ?? [])
+        .map((s) => '${(s as List)[0]}')
+        .toList()
+      ..sort();
+    for (final o in opens) {
+      final p = o.split(':');
+      final at = DateTime(day.year, day.month, day.day, int.parse(p[0]), int.parse(p[1]));
+      if (at.isAfter(now)) {
+        final dayText = d == 0
+            ? 'today'
+            : d == 1
+                ? 'tomorrow'
+                : weekdayNames[day.weekday - 1];
+        return 'Opens $dayText at $o';
+      }
+    }
+  }
+  return null;
+}
+
+List<String> hoursSummary(dynamic hours) {
+  if (hours is! Map || hours['weekly'] is! Map || (hours['weekly'] as Map).isEmpty) {
+    return const [];
+  }
+  final weekly = hours['weekly'] as Map;
+  return [
+    for (var i = 1; i <= 7; i++)
+      '${weekdayNames[i - 1]}: ${((weekly['$i'] as List?) ?? []).isEmpty ? 'Closed' : ((weekly['$i'] as List).map((s) => '${(s as List)[0]}–${s[1]}').join(', '))}'
+  ];
+}
+
+/// Editable rupee text for a paise amount: 12000 -> "120", 12050 -> "120.50".
+String rupeesText(dynamic paise) {
+  if (paise == null || '$paise'.isEmpty) return '';
+  final p = integer(paise);
+  return p % 100 == 0 ? '${p ~/ 100}' : '${p ~/ 100}.${(p % 100).toString().padLeft(2, '0')}';
+}
+
+/// Parses a rupee amount typed by a person into exact paise, or null when invalid.
+int? parsePaise(String text) {
+  final m = RegExp(r'^(\d{1,7})(?:\.(\d{1,2}))?$').firstMatch(text.trim().replaceAll(',', ''));
+  if (m == null) return null;
+  return int.parse(m.group(1)!) * 100 + int.parse((m.group(2) ?? '0').padRight(2, '0'));
+}
