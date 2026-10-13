@@ -66,16 +66,26 @@ class PageFrame extends StatelessWidget {
   final String title;
   final Widget child;
   final List<Widget>? actions;
-  const PageFrame(this.title, {required this.child, this.actions, super.key});
+  final Widget? floatingBottom;
+  const PageFrame(this.title,
+      {required this.child, this.actions, this.floatingBottom, super.key});
   @override
   Widget build(BuildContext context) => Scaffold(
       appBar: AppBar(title: Text(title), actions: actions),
       body: SafeArea(
-          child: Align(
-              alignment: Alignment.topCenter,
-              child: ConstrainedBox(
-                  constraints: const BoxConstraints(maxWidth: 850),
-                  child: child))),
+          child: Stack(children: [
+            Align(
+                alignment: Alignment.topCenter,
+                child: ConstrainedBox(
+                    constraints: const BoxConstraints(maxWidth: 850),
+                    child: child)),
+            if (floatingBottom != null)
+              Positioned(
+                  left: 0,
+                  right: 0,
+                  bottom: 0,
+                  child: SafeArea(child: floatingBottom!))
+          ])),
       bottomNavigationBar: NavigationBar(
           selectedIndex: switch (GoRouterState.of(context).uri.path) {
             '/cart' => 1,
@@ -128,12 +138,14 @@ class RemoteList extends ConsumerStatefulWidget {
   final Widget Function(Json, VoidCallback) item;
   final List<Widget> header;
   final String? watch;
+  final Widget? floatingBottom;
   const RemoteList(
       {required this.title,
       required this.load,
       required this.item,
       this.header = const [],
       this.watch,
+      this.floatingBottom,
       super.key});
   @override
   ConsumerState<RemoteList> createState() => _RemoteListState();
@@ -186,9 +198,13 @@ class _RemoteListState extends ConsumerState<RemoteList> {
 
   @override
   Widget build(BuildContext context) => PageFrame(widget.title,
+      floatingBottom: widget.floatingBottom,
       child: RefreshIndicator(
           onRefresh: () => load(true),
-          child: ListView(padding: const EdgeInsets.all(20), children: [
+          child: ListView(
+              padding: EdgeInsets.fromLTRB(
+                  20, 20, 20, widget.floatingBottom != null ? 100 : 20),
+              children: [
             ...widget.header,
             if (busy) const LinearProgressIndicator(),
             if (error != null) Failure(error!, () => load(true)),

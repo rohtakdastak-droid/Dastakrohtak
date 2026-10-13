@@ -112,40 +112,46 @@ class _AddressEditorState extends ConsumerState<AddressEditor> {
                 const Text(
                     'Tap your delivery point on the map, or enter coordinates from a known address. No device location is collected.'),
                 const SizedBox(height: 12),
-                SizedBox(
-                    height: 300,
-                    child: FlutterMap(
-                        options: MapOptions(
-                            initialCenter:
-                                pin ?? const LatLng(28.8955, 76.6066),
-                            initialZoom: 14,
-                            onTap: (_, point) => setState(() {
-                                  pin = point;
-                                  latitude.text =
-                                      point.latitude.toStringAsFixed(6);
-                                  longitude.text =
-                                      point.longitude.toStringAsFixed(6);
-                                })),
-                        children: [
-                          TileLayer(
-                              urlTemplate: const String.fromEnvironment(
-                                  'MAP_TILE_URL',
-                                  defaultValue:
-                                      'https://tile.openstreetmap.org/{z}/{x}/{y}.png'),
-                              userAgentPackageName: 'com.dastak.app'),
-                          if (pin != null)
-                            MarkerLayer(markers: [
-                              Marker(
-                                  point: pin!,
-                                  child: const Icon(Icons.location_pin,
-                                      size: 42, color: Color(0xFFFF6B00)))
-                            ]),
-                          RichAttributionWidget(attributions: [
-                            TextSourceAttribution('OpenStreetMap contributors',
-                                onTap: () => launchUrl(Uri.parse(
-                                    'https://www.openstreetmap.org/copyright')))
-                          ])
-                        ])),
+                ClipRRect(
+                    borderRadius: BorderRadius.circular(16),
+                    child: SizedBox(
+                        height: 300,
+                        child: FlutterMap(
+                            options: MapOptions(
+                                initialCenter:
+                                    pin ?? const LatLng(28.8955, 76.6066),
+                                initialZoom: 14,
+                                onTap: (_, point) => setState(() {
+                                      pin = point;
+                                      latitude.text =
+                                          point.latitude.toStringAsFixed(6);
+                                      longitude.text =
+                                          point.longitude.toStringAsFixed(6);
+                                    })),
+                            children: [
+                              TileLayer(
+                                  urlTemplate: const String.fromEnvironment(
+                                      'MAP_TILE_URL',
+                                      defaultValue:
+                                          'https://tile.openstreetmap.org/{z}/{x}/{y}.png'),
+                                  userAgentPackageName: 'com.dastak.app'),
+                              if (pin != null)
+                                MarkerLayer(markers: [
+                                  Marker(
+                                      point: pin!,
+                                      child: const Icon(Icons.location_pin,
+                                          size: 42, color: Color(0xFFFF6B00)))
+                                ]),
+                              RichAttributionWidget(
+                                  alignment: AttributionAlignment.bottomRight,
+                                  showFlutterMapAttribution: false,
+                                  popupInitialDisplayDuration: Duration.zero,
+                                  attributions: [
+                                    TextSourceAttribution('OpenStreetMap',
+                                        onTap: () => launchUrl(Uri.parse(
+                                            'https://www.openstreetmap.org/copyright')))
+                                  ])
+                            ]))),
                 Field(latitude, 'Latitude',
                     keyboard: const TextInputType.numberWithOptions(
                         decimal: true, signed: true)),

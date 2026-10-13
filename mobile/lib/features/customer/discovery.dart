@@ -159,12 +159,69 @@ class _StoreScreenState extends ConsumerState<StoreScreen> {
   @override
   Widget build(BuildContext context) {
     final repo = ref.watch(repositoryProvider);
+    final cart = ref.watch(cartProvider);
+    final itemCount = cart.fold<int>(0, (s, l) => s + l.quantity);
+    final cartTotal =
+        cart.fold<int>(0, (s, l) => s + (l.product.price * l.quantity));
     return RemoteList(
         title: 'Shop the menu',
         watch: 'products',
         load: (p) async => (await repo.products(widget.id, page: p))
             .map((p) => {'product': p})
             .toList(),
+        floatingBottom: itemCount == 0
+            ? null
+            : Padding(
+                padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+                child: Material(
+                    color: const Color(0xFFFF6B00),
+                    borderRadius: BorderRadius.circular(16),
+                    elevation: 6,
+                    shadowColor: const Color(0xFFFF6B00).withOpacity(0.4),
+                    child: InkWell(
+                        borderRadius: BorderRadius.circular(16),
+                        onTap: () => context.push('/cart'),
+                        child: Padding(
+                            padding: const EdgeInsets.symmetric(
+                                horizontal: 18, vertical: 14),
+                            child: Row(children: [
+                              Container(
+                                  padding: const EdgeInsets.all(8),
+                                  decoration: BoxDecoration(
+                                      color: Colors.white24,
+                                      borderRadius: BorderRadius.circular(10)),
+                                  child: Text('$itemCount',
+                                      style: const TextStyle(
+                                          color: Colors.white,
+                                          fontWeight: FontWeight.w800,
+                                          fontSize: 14))),
+                              const SizedBox(width: 12),
+                              Expanded(
+                                  child: Column(
+                                      crossAxisAlignment:
+                                          CrossAxisAlignment.start,
+                                      mainAxisSize: MainAxisSize.min,
+                                      children: [
+                                    Text(
+                                        '$itemCount item${itemCount == 1 ? '' : 's'} in bag',
+                                        style: const TextStyle(
+                                            color: Colors.white,
+                                            fontWeight: FontWeight.w700,
+                                            fontSize: 14)),
+                                    Text(money(cartTotal),
+                                        style: const TextStyle(
+                                            color: Colors.white70,
+                                            fontSize: 12))
+                                  ])),
+                              const Text('View bag',
+                                  style: TextStyle(
+                                      color: Colors.white,
+                                      fontWeight: FontWeight.w800,
+                                      fontSize: 14)),
+                              const SizedBox(width: 4),
+                              const Icon(Icons.arrow_forward_rounded,
+                                  color: Colors.white, size: 18)
+                            ]))))),
         header: [
           FutureBuilder<Json>(
               future: repo.one('vendors', widget.id),
