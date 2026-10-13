@@ -142,7 +142,7 @@ class _VendorStoreScreenState extends ConsumerState<VendorStoreScreen> {
                           color: const Color(0xFF059669)),
                       _statTile(context, 'Preparing', '${s['preparing']}',
                           Icons.restaurant_outlined,
-                          color: const Color(0xFFEA580C)),
+                          color: const Color(0xFFFF6B00)),
                       _statTile(context, 'Delivered', '${s['delivered']}',
                           Icons.check_circle_outlined,
                           color: const Color(0xFF2563EB))

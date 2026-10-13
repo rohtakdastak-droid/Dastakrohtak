@@ -138,7 +138,7 @@ class _AddressEditorState extends ConsumerState<AddressEditor> {
                               Marker(
                                   point: pin!,
                                   child: const Icon(Icons.location_pin,
-                                      size: 42, color: Color(0xFFEA580C)))
+                                      size: 42, color: Color(0xFFFF6B00)))
                             ]),
                           RichAttributionWidget(attributions: [
                             TextSourceAttribution('OpenStreetMap contributors',

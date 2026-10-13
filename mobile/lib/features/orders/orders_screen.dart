@@ -104,7 +104,7 @@ class _OrderScreenState extends ConsumerState<OrderScreen> {
                           gradient: const LinearGradient(
                               begin: Alignment.topLeft,
                               end: Alignment.bottomRight,
-                              colors: [Color(0xFFEA580C), Color(0xFFC2410C)]),
+                              colors: [Color(0xFFFF6B00), Color(0xFFE65C00)]),
                           borderRadius: BorderRadius.circular(18)),
                       child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,

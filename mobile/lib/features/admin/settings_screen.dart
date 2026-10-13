@@ -47,54 +47,100 @@ class _AdminSettingsScreenState extends ConsumerState<AdminSettingsScreen> {
               final overflow = s.data![2] as Json;
               final settings = List<Json>.from(s.data![3]);
               return ListView(padding: const EdgeInsets.all(20), children: [
-                Text('Payment instructions',
-                    style: Theme.of(context).textTheme.titleLarge),
-                Text(payment['upi_vpa'] ?? 'UPI not configured'),
-                const Text(
-                    'Manual verification only. COD and gateway payments are unavailable.'),
-                ActionButton('Edit UPI settings', () async {
-                  await editRecord(context,
-                      title: 'UPI settings',
-                      initial: payment,
-                      fields: const [
-                        EditField('upi_vpa', 'UPI ID'),
-                        EditField('payee_name', 'Payee name'),
-                        EditField('instructions', 'Instructions',
-                            type: 'multiline', optional: true)
-                      ], save: (d) async {
-                    if (!RegExp(r'^[^\s@]+@[^\s@]+$').hasMatch(d['upi_vpa'])) {
-                      throw StateError('Enter a valid UPI ID');
-                    }
-                    await repo.client
-                        .from('payment_settings')
-                        .update(d)
-                        .eq('id', true);
-                  });
-                  if (mounted) setState(load);
-                }),
-                ActionButton('Upload payment QR', () async {
-                  final file = await ImagePicker().pickImage(
-                      source: ImageSource.gallery,
-                      maxWidth: 1200,
-                      imageQuality: 90);
-                  if (file == null) return;
-                  final path = await repo.upload(
-                      'payment-qr', 'qr', await file.readAsBytes());
-                  await repo.client
-                      .from('payment_settings')
-                      .update({'qr_image_path': path}).eq('id', true);
-                  if (mounted) setState(load);
-                }),
-                const SizedBox(height: 24),
-                Text('Delivery rate bands',
-                    style: Theme.of(context).textTheme.titleLarge),
+                Card(
+                    child: Padding(
+                        padding: const EdgeInsets.all(16),
+                        child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Row(children: const [
+                                Icon(Icons.payments_outlined,
+                                    color: Color(0xFFFF6B00)),
+                                SizedBox(width: 10),
+                                Text('Payment instructions',
+                                    style: TextStyle(
+                                        fontSize: 16,
+                                        fontWeight: FontWeight.w800))
+                              ]),
+                              const SizedBox(height: 10),
+                              Text(payment['upi_vpa'] ?? 'UPI not configured',
+                                  style: const TextStyle(
+                                      fontFamily: 'monospace',
+                                      fontSize: 14,
+                                      color: Color(0xFF1F2937))),
+                              const SizedBox(height: 4),
+                              const Text(
+                                  'Manual verification only. COD and gateway payments are unavailable.',
+                                  style: TextStyle(
+                                      fontSize: 12, color: Color(0xFF6B7280))),
+                              const SizedBox(height: 14),
+                              SizedBox(
+                                  width: double.infinity,
+                                  child: ActionButton('Edit UPI settings',
+                                      () async {
+                                    await editRecord(context,
+                                        title: 'UPI settings',
+                                        initial: payment,
+                                        fields: const [
+                                          EditField('upi_vpa', 'UPI ID'),
+                                          EditField('payee_name', 'Payee name'),
+                                          EditField('instructions', 'Instructions',
+                                              type: 'multiline', optional: true)
+                                        ], save: (d) async {
+                                      if (!RegExp(r'^[^\s@]+@[^\s@]+$')
+                                          .hasMatch(d['upi_vpa'])) {
+                                        throw StateError('Enter a valid UPI ID');
+                                      }
+                                      await repo.client
+                                          .from('payment_settings')
+                                          .update(d)
+                                          .eq('id', true);
+                                    });
+                                    if (mounted) setState(load);
+                                  }, icon: Icons.edit_outlined)),
+                              const SizedBox(height: 10),
+                              SizedBox(
+                                  width: double.infinity,
+                                  child: OutlinedButton.icon(
+                                      icon:
+                                          const Icon(Icons.qr_code_2_outlined),
+                                      label: const Text('Upload payment QR'),
+                                      onPressed: () async {
+                                        final file =
+                                            await ImagePicker().pickImage(
+                                                source: ImageSource.gallery,
+                                                maxWidth: 1200,
+                                                imageQuality: 90);
+                                        if (file == null) return;
+                                        final path = await repo.upload(
+                                            'payment-qr',
+                                            'qr',
+                                            await file.readAsBytes());
+                                        await repo.client
+                                            .from('payment_settings')
+                                            .update({'qr_image_path': path}).eq(
+                                                'id', true);
+                                        if (mounted) setState(load);
+                                      }))
+                            ]))),
+                const SizedBox(height: 20),
+                Row(children: const [
+                  Icon(Icons.pedal_bike_outlined, color: Color(0xFFFF6B00)),
+                  SizedBox(width: 8),
+                  Text('Delivery rate bands',
+                      style:
+                          TextStyle(fontSize: 16, fontWeight: FontWeight.w800))
+                ]),
+                const SizedBox(height: 10),
                 for (final rate in rates)
-                  ListTile(
+                  Card(
+                      margin: const EdgeInsets.only(bottom: 8),
+                      child: ListTile(
                       title: Text('${rate['min_km']}–${rate['max_km']} km'),
                       subtitle: Text(money(integer(rate['fee_paise']))),
                       trailing: IconButton(
                           tooltip: 'Edit rate',
-                          icon: const Icon(Icons.edit),
+                          icon: const Icon(Icons.edit, color: Color(0xFFFF6B00)),
                           onPressed: () async {
                             await editRecord(context,
                                 title: 'Delivery band',
@@ -115,8 +161,11 @@ class _AdminSettingsScreenState extends ConsumerState<AdminSettingsScreen> {
                                   'admin_replace_rate_table', {'p_rows': next});
                             });
                             if (mounted) setState(load);
-                          })),
-                ActionButton('Edit overflow rate', () async {
+                          }))),
+                const SizedBox(height: 8),
+                SizedBox(
+                    width: double.infinity,
+                    child: ActionButton('Edit overflow rate', () async {
                   await editRecord(context,
                       title: 'Beyond final rate band',
                       initial: overflow,
@@ -138,7 +187,7 @@ class _AdminSettingsScreenState extends ConsumerState<AdminSettingsScreen> {
                         .eq('id', true);
                   });
                   if (mounted) setState(load);
-                }),
+                }, icon: Icons.edit_outlined)),
                 const SizedBox(height: 24),
                 for (final setting in settings.where((j) => [
                       'tax_percent',

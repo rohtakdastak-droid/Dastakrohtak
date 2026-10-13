@@ -27,7 +27,7 @@ class _DiscoveryScreenState extends ConsumerState<DiscoveryScreen> {
                 .toList(),
         header: [
           Row(children: [
-            const Icon(Icons.location_on_outlined, color: Color(0xFFEA580C)),
+            const Icon(Icons.location_on_outlined, color: Color(0xFFFF6B00)),
             const Expanded(
                 child: Text('YOUR NEIGHBOURHOOD • ROHTAK',
                     style:

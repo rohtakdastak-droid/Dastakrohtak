@@ -188,25 +188,94 @@ class _DastakAppState extends ConsumerState<DastakApp> {
       theme: ThemeData(
           useMaterial3: true,
           colorScheme: ColorScheme.fromSeed(
-              seedColor: const Color(0xFFEA580C),
-              primary: const Color(0xFFC2410C)),
-          scaffoldBackgroundColor: const Color(0xFFFFFBF7),
+              seedColor: const Color(0xFFFF6B00),
+              primary: const Color(0xFFFF6B00),
+              secondary: const Color(0xFF10B981),
+              error: const Color(0xFFEF4444),
+              background: Colors.white,
+              surface: Colors.white,
+              onPrimary: Colors.white,
+              onBackground: const Color(0xFF1F2937),
+              onSurface: const Color(0xFF1F2937),
+              brightness: Brightness.light),
+          scaffoldBackgroundColor: Colors.white,
           appBarTheme: const AppBarTheme(
-              backgroundColor: Color(0xFFFFFBF7), centerTitle: false),
+              backgroundColor: Colors.white,
+              foregroundColor: Color(0xFF1F2937),
+              centerTitle: false,
+              elevation: 0,
+              scrolledUnderElevation: 0,
+              titleTextStyle: TextStyle(
+                  color: Color(0xFF1F2937),
+                  fontWeight: FontWeight.w800,
+                  fontSize: 20)),
+          textTheme: const TextTheme(
+              headlineLarge: TextStyle(
+                  color: Color(0xFF1F2937),
+                  fontWeight: FontWeight.w800,
+                  fontSize: 32,
+                  height: 1.15),
+              headlineMedium: TextStyle(
+                  color: Color(0xFF1F2937),
+                  fontWeight: FontWeight.w800,
+                  fontSize: 24),
+              titleLarge: TextStyle(
+                  color: Color(0xFF1F2937),
+                  fontWeight: FontWeight.w700,
+                  fontSize: 18),
+              titleMedium: TextStyle(
+                  color: Color(0xFF1F2937),
+                  fontWeight: FontWeight.w700,
+                  fontSize: 15),
+              bodyMedium: TextStyle(color: Color(0xFF374151))),
           inputDecorationTheme: InputDecorationTheme(
               filled: true,
-              fillColor: Colors.white,
-              border:
-                  OutlineInputBorder(borderRadius: BorderRadius.circular(14))),
+              fillColor: const Color(0xFFF8FAFC),
+              hintStyle: const TextStyle(color: Color(0xFF9CA3AF)),
+              border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(14),
+                  borderSide: BorderSide.none),
+              enabledBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(14),
+                  borderSide: BorderSide.none),
+              focusedBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(14),
+                  borderSide: const BorderSide(
+                      color: Color(0xFFFF6B00), width: 1.5))),
           cardTheme: CardTheme(
               elevation: 0,
               color: Colors.white,
+              surfaceTintColor: Colors.transparent,
               shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(20),
-                  side: const BorderSide(color: Color(0xFFF0E6DD)))),
+                  borderRadius: BorderRadius.circular(18),
+                  side: const BorderSide(color: Color(0xFFEEF2F6)))),
           filledButtonTheme: FilledButtonThemeData(
               style: FilledButton.styleFrom(
-                  minimumSize: const Size(48, 48),
+                  backgroundColor: const Color(0xFFFF6B00),
+                  foregroundColor: Colors.white,
+                  minimumSize: const Size.fromHeight(52),
                   padding: const EdgeInsets.symmetric(
-                      horizontal: 20, vertical: 14)))));
+                      horizontal: 20, vertical: 14),
+                  textStyle: const TextStyle(
+                      fontWeight: FontWeight.w700, fontSize: 15),
+                  shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(14)))),
+          outlinedButtonTheme: OutlinedButtonThemeData(
+              style: OutlinedButton.styleFrom(
+                  minimumSize: const Size.fromHeight(48),
+                  side: const BorderSide(color: Color(0xFFE5E7EB)),
+                  foregroundColor: const Color(0xFF1F2937),
+                  shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(14)))),
+          navigationBarTheme: const NavigationBarThemeData(
+              backgroundColor: Colors.white,
+              indicatorColor: Color(0xFFFFF4E8),
+              elevation: 0,
+              surfaceTintColor: Colors.transparent,
+              labelTextStyle: WidgetStatePropertyAll(TextStyle(
+                  fontSize: 11,
+                  fontWeight: FontWeight.w600,
+                  color: Color(0xFF1F2937))),
+              iconTheme: WidgetStatePropertyAll(
+                  IconThemeData(color: Color(0xFF1F2937))))));
 }

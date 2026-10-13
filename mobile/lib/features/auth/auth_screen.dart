@@ -61,7 +61,7 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
                               crossAxisAlignment: CrossAxisAlignment.stretch,
                               children: [
                                 const Icon(Icons.doorbell_rounded,
-                                    size: 64, color: Color(0xFFEA580C)),
+                                    size: 64, color: Color(0xFFFF6B00)),
                                 const SizedBox(height: 20),
                                 Text(
                                     widget.recovery

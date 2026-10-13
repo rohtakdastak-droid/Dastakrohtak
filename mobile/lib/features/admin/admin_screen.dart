@@ -21,6 +21,18 @@ class AdminScreen extends ConsumerWidget {
     (Icons.history_outlined, 'Audit log', '/admin/audit'),
   ];
 
+  // Maps metric keys to the destination route that lists more detail.
+  static String? _metricRoute(String key) {
+    final k = key.toLowerCase();
+    if (k.contains('vendor') || k.contains('store')) return '/admin/vendors';
+    if (k.contains('customer')) return '/admin/partners';
+    if (k.contains('partner') || k.contains('deliver')) return '/admin/partners';
+    if (k.contains('paise') || k.contains('collect') || k.contains('revenue')) {
+      return '/admin/payments';
+    }
+    return '/orders';
+  }
+
   @override
   Widget build(BuildContext context, WidgetRef ref) => RemoteList(
       title: 'Operations',
@@ -42,7 +54,7 @@ class AdminScreen extends ConsumerWidget {
             children: [
               for (final e in _navItems)
                 Material(
-                    color: const Color(0xFFFFF7ED),
+                    color: const Color(0xFFFFF4E8),
                     borderRadius: BorderRadius.circular(16),
                     child: InkWell(
                         borderRadius: BorderRadius.circular(16),
@@ -53,13 +65,14 @@ class AdminScreen extends ConsumerWidget {
                                 mainAxisAlignment: MainAxisAlignment.center,
                                 children: [
                                   Icon(e.$1,
-                                      size: 26, color: const Color(0xFFEA580C)),
+                                      size: 26, color: const Color(0xFFFF6B00)),
                                   const SizedBox(height: 6),
                                   Text(e.$2,
                                       textAlign: TextAlign.center,
                                       style: const TextStyle(
                                           fontSize: 12,
-                                          fontWeight: FontWeight.w600))
+                                          fontWeight: FontWeight.w700,
+                                          color: Color(0xFF1F2937)))
                                 ]))))
             ]),
         const SizedBox(height: 20),
@@ -74,14 +87,34 @@ class AdminScreen extends ConsumerWidget {
             Card(
                 margin: const EdgeInsets.only(bottom: 8),
                 child: ListTile(
-                    leading: Icon(_iconFor(entry.key),
-                        color: const Color(0xFFEA580C)),
-                    title: Text(human(entry.key)),
-                    trailing: Text(
-                        entry.key.endsWith('paise')
-                            ? money(integer(entry.value))
-                            : '${entry.value}',
-                        style: Theme.of(context).textTheme.titleLarge)))
+                    onTap: () {
+                      final route = _metricRoute(entry.key);
+                      if (route != null) context.push(route);
+                    },
+                    leading: Container(
+                        width: 40,
+                        height: 40,
+                        decoration: BoxDecoration(
+                            color: const Color(0xFFFFF4E8),
+                            borderRadius: BorderRadius.circular(10)),
+                        child: Icon(_iconFor(entry.key),
+                            color: const Color(0xFFFF6B00), size: 22)),
+                    title: Text(human(entry.key),
+                        style: const TextStyle(
+                            fontWeight: FontWeight.w600, fontSize: 14)),
+                    trailing: Row(mainAxisSize: MainAxisSize.min, children: [
+                      Text(
+                          entry.key.endsWith('paise')
+                              ? money(integer(entry.value))
+                              : '${entry.value}',
+                          style: const TextStyle(
+                              fontSize: 20,
+                              fontWeight: FontWeight.w800,
+                              color: Color(0xFF1F2937))),
+                      const SizedBox(width: 4),
+                      const Icon(Icons.chevron_right,
+                          color: Color(0xFF9CA3AF), size: 18)
+                    ])))
         ]);
       });
 
@@ -95,6 +128,7 @@ class AdminScreen extends ConsumerWidget {
     if (key.contains('vendor') || key.contains('store')) {
       return Icons.storefront_outlined;
     }
+    if (key.contains('customer')) return Icons.people_outline;
     if (key.contains('prepar')) return Icons.restaurant_outlined;
     return Icons.receipt_long_outlined;
   }
