@@ -37,41 +37,23 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
     if (widget.recovery) {
       await auth.updateUser(UserAttributes(password: password.text));
     } else if (signup) {
-      final result = await auth.signUp(
-          email: email.text.trim(),
-          password: password.text,
-          data: {
+      // Server-side signup creates the user with email auto-confirmed, then we
+      // sign in with the password to get a session instantly.
+      final response = await repo.client.functions.invoke('signup-customer',
+          body: {
+            'email': email.text.trim(),
+            'password': password.text,
             'display_name': displayName.text.trim(),
             'phone': phone.text.trim()
-          },
-          emailRedirectTo: 'com.dastak.app://auth/callback');
-      // If the project requires email confirmation, there is no session yet.
-      // Try to sign in directly — if confirmation is off this logs the user in;
-      // if it is on, surface the message so they can confirm by email.
-      if (result.session == null) {
-        try {
-          await auth.signInWithPassword(
-              email: email.text.trim(), password: password.text);
-        } catch (_) {
-          if (mounted) {
-            toast(context,
-                'Check your email to confirm your account, then sign in.');
-          }
-          return;
-        }
-      }
-      // Make sure the customer profile row carries name and phone.
-      try {
-        final uid = auth.currentUser?.id ?? result.user?.id;
-        if (uid != null) {
-          await repo.client.from('profiles').upsert({
-            'id': uid,
-            'display_name': displayName.text.trim(),
-            'phone': phone.text.trim(),
-            'role': 'customer'
           });
-        }
-      } catch (_) {}
+      final data = response.data is Map
+          ? Map<String, dynamic>.from(response.data as Map)
+          : <String, dynamic>{};
+      if (data['error'] != null) {
+        throw StateError(data['error'].toString());
+      }
+      await auth.signInWithPassword(
+          email: email.text.trim(), password: password.text);
     } else {
       await auth.signInWithPassword(
           email: email.text.trim(), password: password.text);
