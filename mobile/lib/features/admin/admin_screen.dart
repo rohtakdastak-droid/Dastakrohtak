@@ -11,6 +11,16 @@ import '../orders/orders_screen.dart';
 
 class AdminScreen extends ConsumerWidget {
   const AdminScreen({super.key});
+
+  static const _navItems = [
+    (Icons.storefront_outlined, 'Restaurants', '/admin/vendors'),
+    (Icons.receipt_long_outlined, 'Orders', '/orders'),
+    (Icons.payments_outlined, 'Payments', '/admin/payments'),
+    (Icons.pedal_bike_outlined, 'Partners', '/admin/partners'),
+    (Icons.settings_outlined, 'Settings', '/admin/settings'),
+    (Icons.history_outlined, 'Audit log', '/admin/audit'),
+  ];
+
   @override
   Widget build(BuildContext context, WidgetRef ref) => RemoteList(
       title: 'Operations',
@@ -22,33 +32,72 @@ class AdminScreen extends ConsumerWidget {
             ]
           : [],
       header: [
-        Wrap(spacing: 8, children: [
-          for (final e in [
-            ('Stores', 'vendors'),
-            ('Payments', 'payments'),
-            ('Partners', 'partners'),
-            ('Settings', 'settings'),
-            ('Audit log', 'audit')
-          ])
-            OutlinedButton(
-                onPressed: () => context.push('/admin/${e.$2}'),
-                child: Text(e.$1)),
-          OutlinedButton(
-              onPressed: () => context.push('/orders'),
-              child: const Text('Orders'))
-        ])
+        GridView.count(
+            crossAxisCount: 3,
+            shrinkWrap: true,
+            physics: const NeverScrollableScrollPhysics(),
+            crossAxisSpacing: 10,
+            mainAxisSpacing: 10,
+            childAspectRatio: 1,
+            children: [
+              for (final e in _navItems)
+                Material(
+                    color: const Color(0xFFFFF7ED),
+                    borderRadius: BorderRadius.circular(16),
+                    child: InkWell(
+                        borderRadius: BorderRadius.circular(16),
+                        onTap: () => context.push(e.$3),
+                        child: Padding(
+                            padding: const EdgeInsets.all(10),
+                            child: Column(
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                children: [
+                                  Icon(e.$1,
+                                      size: 26, color: const Color(0xFFEA580C)),
+                                  const SizedBox(height: 6),
+                                  Text(e.$2,
+                                      textAlign: TextAlign.center,
+                                      style: const TextStyle(
+                                          fontSize: 12,
+                                          fontWeight: FontWeight.w600))
+                                ]))))
+            ]),
+        const SizedBox(height: 20),
+        const Text("Today's live metrics",
+            style: TextStyle(fontSize: 13, fontWeight: FontWeight.w700)),
+        const SizedBox(height: 8),
       ],
-      item: (j, reload) => Column(children: [
-            for (final entry in j.entries)
-              Card(
-                  child: ListTile(
-                      title: Text(human(entry.key)),
-                      trailing: Text(
-                          entry.key.endsWith('paise')
-                              ? money(integer(entry.value))
-                              : '${entry.value}',
-                          style: Theme.of(context).textTheme.titleLarge)))
-          ]));
+      item: (j, reload) {
+        final entries = j.entries.toList();
+        return Column(children: [
+          for (final entry in entries)
+            Card(
+                margin: const EdgeInsets.only(bottom: 8),
+                child: ListTile(
+                    leading: Icon(_iconFor(entry.key),
+                        color: const Color(0xFFEA580C)),
+                    title: Text(human(entry.key)),
+                    trailing: Text(
+                        entry.key.endsWith('paise')
+                            ? money(integer(entry.value))
+                            : '${entry.value}',
+                        style: Theme.of(context).textTheme.titleLarge)))
+        ]);
+      });
+
+  static IconData _iconFor(String key) {
+    if (key.contains('paise') || key.contains('revenue')) {
+      return Icons.payments_outlined;
+    }
+    if (key.contains('delivered')) return Icons.check_circle_outlined;
+    if (key.contains('cancel')) return Icons.cancel_outlined;
+    if (key.contains('deliver')) return Icons.pedal_bike_outlined;
+    if (key.contains('vendor') || key.contains('store')) {
+      return Icons.storefront_outlined;
+    }
+    if (key.contains('prepar')) return Icons.restaurant_outlined;
+    return Icons.receipt_long_outlined;
+  }
 }
 
 class AdminVendorsScreen extends ConsumerStatefulWidget {
@@ -229,35 +278,108 @@ class _AdminPartnersScreenState extends ConsumerState<AdminPartnersScreen> {
             if (mounted) setState(() => generation++);
           })
         ],
-        item: (j, reload) => Card(
-            child: Padding(
-                padding: const EdgeInsets.all(16),
-                child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(j['display_name'] ?? 'Partner',
-                          style: Theme.of(context).textTheme.titleLarge),
-                      Text(j['status']),
-                      Wrap(spacing: 8, children: [
-                        for (final status in [
-                          'active',
-                          'suspended',
-                          'rejected'
-                        ])
-                          ActionButton(
-                              status == 'active'
-                                  ? 'Approve / reactivate'
-                                  : human(status), () async {
-                            await repo.rpc('admin_set_partner_status',
-                                {'p_user_id': j['id'], 'p_status': status});
-                            reload();
-                          }),
-                        TextButton(
-                            onPressed: () =>
-                                context.push('/admin/documents/${j['id']}'),
-                            child: const Text('Review documents'))
-                      ])
-                    ]))));
+        item: (j, reload) {
+          final status = (j['status'] ?? '').toString();
+          Color statusColor;
+          switch (status) {
+            case 'active':
+              statusColor = const Color(0xFF059669);
+              break;
+            case 'suspended':
+              statusColor = const Color(0xFFD97706);
+              break;
+            case 'rejected':
+              statusColor = const Color(0xFFDC2626);
+              break;
+            default:
+              statusColor = const Color(0xFF6B7280);
+          }
+          return Card(
+              margin: const EdgeInsets.only(bottom: 12),
+              child: Padding(
+                  padding: const EdgeInsets.all(16),
+                  child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Row(children: [
+                          Expanded(
+                              child: Text(j['display_name'] ?? 'Partner',
+                                  style:
+                                      Theme.of(context).textTheme.titleLarge)),
+                          Container(
+                              padding: const EdgeInsets.symmetric(
+                                  horizontal: 10, vertical: 4),
+                              decoration: BoxDecoration(
+                                  color: statusColor.withOpacity(0.12),
+                                  borderRadius: BorderRadius.circular(999)),
+                              child: Text(human(status),
+                                  style: TextStyle(
+                                      color: statusColor,
+                                      fontWeight: FontWeight.w700,
+                                      fontSize: 12)))
+                        ]),
+                        const SizedBox(height: 14),
+                        // Status actions as a clean vertical stack
+                        if (status != 'active')
+                          SizedBox(
+                              width: double.infinity,
+                              child: ActionButton(
+                                  status == 'suspended' || status == 'rejected'
+                                      ? 'Approve / reactivate'
+                                      : 'Approve', () async {
+                                await repo.rpc('admin_set_partner_status', {
+                                  'p_user_id': j['id'],
+                                  'p_status': 'active'
+                                });
+                                reload();
+                              }, icon: Icons.check_circle_outline)),
+                        const SizedBox(height: 8),
+                        if (status != 'suspended' && status != 'rejected')
+                          Row(children: [
+                            Expanded(
+                                child: OutlinedButton.icon(
+                                    style: OutlinedButton.styleFrom(
+                                        foregroundColor:
+                                            const Color(0xFFD97706)),
+                                    onPressed: () async {
+                                      await repo.rpc(
+                                          'admin_set_partner_status', {
+                                        'p_user_id': j['id'],
+                                        'p_status': 'suspended'
+                                      });
+                                      reload();
+                                    },
+                                    icon: const Icon(Icons.pause_circle_outline,
+                                        size: 18),
+                                    label: const Text('Suspend'))),
+                            const SizedBox(width: 8),
+                            Expanded(
+                                child: OutlinedButton.icon(
+                                    style: OutlinedButton.styleFrom(
+                                        foregroundColor:
+                                            const Color(0xFFDC2626)),
+                                    onPressed: () async {
+                                      await repo.rpc(
+                                          'admin_set_partner_status', {
+                                        'p_user_id': j['id'],
+                                        'p_status': 'rejected'
+                                      });
+                                      reload();
+                                    },
+                                    icon: const Icon(Icons.block, size: 18),
+                                    label: const Text('Reject')))
+                          ]),
+                        const SizedBox(height: 8),
+                        Align(
+                            alignment: Alignment.centerRight,
+                            child: TextButton.icon(
+                                onPressed: () => context
+                                    .push('/admin/documents/${j['id']}'),
+                                icon: const Icon(Icons.description_outlined,
+                                    size: 16),
+                                label: const Text('Review documents')))
+                      ])));
+        });
   }
 }
 

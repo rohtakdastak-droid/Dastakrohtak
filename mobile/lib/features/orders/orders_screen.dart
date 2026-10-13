@@ -98,14 +98,49 @@ class _OrderScreenState extends ConsumerState<OrderScreen> {
                   await future;
                 },
                 child: ListView(padding: const EdgeInsets.all(20), children: [
-                  Text(o.number,
-                      style: Theme.of(context).textTheme.headlineMedium),
-                  const SizedBox(height: 12),
-                  Chip(label: Text(human(o.status))),
-                  Text('Payment: ${human(o.payment)}'),
-                  const Divider(),
-                  Text('From ${o.data['vendors']?['name'] ?? 'Store'}'),
-                  Text(o.data['vendors']?['dispatch_address'] ?? ''),
+                  Container(
+                      padding: const EdgeInsets.all(16),
+                      decoration: BoxDecoration(
+                          gradient: const LinearGradient(
+                              begin: Alignment.topLeft,
+                              end: Alignment.bottomRight,
+                              colors: [Color(0xFFEA580C), Color(0xFFC2410C)]),
+                          borderRadius: BorderRadius.circular(18)),
+                      child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            const Text('ORDER',
+                                style: TextStyle(
+                                    color: Colors.white70,
+                                    fontSize: 11,
+                                    fontWeight: FontWeight.w800,
+                                    letterSpacing: 1.5)),
+                            Text(o.number,
+                                style: const TextStyle(
+                                    color: Colors.white,
+                                    fontSize: 24,
+                                    fontWeight: FontWeight.w800)),
+                            const SizedBox(height: 8),
+                            Container(
+                                padding: const EdgeInsets.symmetric(
+                                    horizontal: 12, vertical: 6),
+                                decoration: BoxDecoration(
+                                    color: Colors.white24,
+                                    borderRadius: BorderRadius.circular(999)),
+                                child: Text(human(o.status),
+                                    style: const TextStyle(
+                                        color: Colors.white,
+                                        fontWeight: FontWeight.w700,
+                                        fontSize: 12))),
+                            const SizedBox(height: 6),
+                            Text('Payment: ${human(o.payment)}',
+                                style: const TextStyle(color: Colors.white70))
+                          ])),
+                  const SizedBox(height: 16),
+                  Text('From ${o.data['vendors']?['name'] ?? 'Store'}',
+                      style: const TextStyle(fontWeight: FontWeight.w700)),
+                  Text(o.data['vendors']?['dispatch_address'] ?? '',
+                      style: const TextStyle(color: Color(0xFF6B7280))),
                   const SizedBox(height: 16),
                   const Text('DELIVER TO'),
                   Text(o.data['destination_address']),

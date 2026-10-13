@@ -7,6 +7,35 @@ import '../../core/providers.dart';
 import '../../core/widgets.dart';
 import '../../core/editor.dart';
 
+Widget _dStat(BuildContext context, String label, String value, IconData icon,
+    {Color color = const Color(0xFF374151)}) {
+  return Container(
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+          color: color.withOpacity(0.08),
+          borderRadius: BorderRadius.circular(14)),
+      child: Row(children: [
+        Icon(icon, color: color, size: 22),
+        const SizedBox(width: 10),
+        Expanded(
+            child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+              Text(label,
+                  style: const TextStyle(
+                      fontSize: 11,
+                      fontWeight: FontWeight.w600,
+                      color: Color(0xFF6B7280))),
+              Text(value,
+                  style: TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.w800,
+                      color: color))
+            ]))
+      ]));
+}
+
 class DeliveryScreen extends ConsumerStatefulWidget {
   const DeliveryScreen({super.key});
   @override
@@ -32,42 +61,149 @@ class _DeliveryScreenState extends ConsumerState<DeliveryScreen> {
           final offers = online && profile['approved_at'] != null
               ? List<Json>.from(await repo.rpc('list_available_orders'))
               : <Json>[];
+          // Personal stats
+          final today = DateTime.now()
+              .toUtc()
+              .copyWith(hour: 0, minute: 0, second: 0, millisecond: 0);
+          final todayDeliveries = await repo.client
+              .from('delivery_assignments')
+              .select('id')
+              .eq('partner_id', repo.uid)
+              .eq('status', 'accepted')
+              .gte('created_at', today.toIso8601String());
+          final totalEarnings = await repo.client
+              .from('delivery_earnings')
+              .select('net_paise,created_at')
+              .eq('partner_id', repo.uid);
+          int todayEarn = 0, totalEarn = 0, totalDeliv = 0;
+          for (final e in (totalEarnings as List)) {
+            final paise = (e['net_paise'] ?? 0) as int;
+            totalEarn += paise;
+            totalDeliv++;
+            final ts = DateTime.tryParse(e['created_at'] ?? '');
+            if (ts != null && ts.isAfter(today)) todayEarn += paise;
+          }
           return [
-            {'kind': 'profile', ...profile},
+            {
+              'kind': 'profile',
+              ...profile,
+              'stats': {
+                'today_deliveries': (todayDeliveries as List).length,
+                'total_deliveries': totalDeliv,
+                'today_earn': todayEarn,
+                'total_earn': totalEarn
+              }
+            },
             ...active.map((j) => {'kind': 'active', ...j}),
             ...offers.map((j) => {'kind': 'offer', ...j})
           ];
         },
         header: [
           Wrap(spacing: 8, children: [
-            TextButton(
+            TextButton.icon(
                 onPressed: () => context.push('/delivery/earnings'),
-                child: const Text('Earnings')),
-            TextButton(
+                icon: const Icon(Icons.account_balance_wallet_outlined,
+                    size: 18),
+                label: const Text('Earnings')),
+            TextButton.icon(
                 onPressed: () => context.push('/delivery/profile'),
-                child: const Text('Profile & documents')),
-            TextButton(
+                icon: const Icon(Icons.person_outline, size: 18),
+                label: const Text('Profile')),
+            TextButton.icon(
                 onPressed: () => context.push('/orders'),
-                child: const Text('Delivery history'))
+                icon: const Icon(Icons.history, size: 18),
+                label: const Text('History'))
           ])
         ],
         item: (j, reload) {
           if (j['kind'] == 'profile') {
-            return Column(children: [
-              Text(
-                  'Approval: ${j['approved_at'] == null ? 'Awaiting admin approval' : 'Approved'}'),
-              SwitchListTile(
-                  title: const Text('Available for deliveries'),
-                  value: online,
-                  onChanged: (value) async {
-                    if (await perform(
-                        context,
-                        () => repo
-                            .rpc('set_partner_online', {'p_online': value}))) {
-                      if (mounted) setState(() => generation++);
-                    }
-                  })
-            ]);
+            final s = j['stats'] as Json;
+            return Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  Container(
+                      padding: const EdgeInsets.all(14),
+                      decoration: BoxDecoration(
+                          color: j['approved_at'] == null
+                              ? const Color(0xFFFEF3C7)
+                              : const Color(0xFFECFDF5),
+                          borderRadius: BorderRadius.circular(14)),
+                      child: Row(children: [
+                        Icon(
+                            j['approved_at'] == null
+                                ? Icons.pending_outlined
+                                : Icons.verified_outlined,
+                            color: j['approved_at'] == null
+                                ? const Color(0xFFD97706)
+                                : const Color(0xFF059669)),
+                        const SizedBox(width: 10),
+                        Expanded(
+                            child: Text(
+                                j['approved_at'] == null
+                                    ? 'Awaiting admin approval'
+                                    : 'Approved partner',
+                                style: const TextStyle(
+                                    fontWeight: FontWeight.w700)))
+                      ])),
+                  const SizedBox(height: 14),
+                  Row(children: const [
+                    Icon(Icons.circle, size: 8, color: Color(0xFF059669)),
+                    SizedBox(width: 6),
+                    Text('LIVE',
+                        style: TextStyle(
+                            fontSize: 11,
+                            fontWeight: FontWeight.w800,
+                            color: Color(0xFF059669))),
+                    SizedBox(width: 10),
+                    Text('Your dashboard',
+                        style: TextStyle(
+                            fontSize: 13, fontWeight: FontWeight.w700))
+                  ]),
+                  const SizedBox(height: 10),
+                  GridView.count(
+                      crossAxisCount: 2,
+                      shrinkWrap: true,
+                      physics: const NeverScrollableScrollPhysics(),
+                      crossAxisSpacing: 10,
+                      mainAxisSpacing: 10,
+                      childAspectRatio: 2.1,
+                      children: [
+                        _dStat(context, 'Deliveries today',
+                            '${s['today_deliveries']}', Icons.pedal_bike_outlined,
+                            color: const Color(0xFFEA580C)),
+                        _dStat(context, 'Earnings today',
+                            money(integer(s['today_earn'])),
+                            Icons.payments_outlined,
+                            color: const Color(0xFF059669)),
+                        _dStat(context, 'Total deliveries',
+                            '${s['total_deliveries']}',
+                            Icons.check_circle_outlined,
+                            color: const Color(0xFF2563EB)),
+                        _dStat(
+                            context,
+                            'Total earnings',
+                            money(integer(s['total_earn'])),
+                            Icons.account_balance_wallet_outlined,
+                            color: const Color(0xFF7C3AED))
+                      ]),
+                  const SizedBox(height: 14),
+                  Card(
+                      child: SwitchListTile(
+                          title: const Text('Available for deliveries'),
+                          subtitle: Text(online
+                              ? 'You are receiving offers'
+                              : 'Turn on to receive offers'),
+                          value: online,
+                          onChanged: (value) async {
+                            if (await perform(
+                                context,
+                                () => repo.rpc('set_partner_online',
+                                    {'p_online': value}))) {
+                              if (mounted) setState(() => generation++);
+                            }
+                          })),
+                  const SizedBox(height: 10)
+                ]);
           }
           final active = j['kind'] == 'active';
           return Card(

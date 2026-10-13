@@ -13,17 +13,16 @@ class DiscoveryScreen extends ConsumerStatefulWidget {
 }
 
 class _DiscoveryScreenState extends ConsumerState<DiscoveryScreen> {
-  String? category;
   String search = '';
   int generation = 0;
   @override
   Widget build(BuildContext context) {
     final repo = ref.watch(repositoryProvider);
     return RemoteList(
-        key: ValueKey('$category/$search/$generation'),
+        key: ValueKey('$search/$generation'),
         title: 'Dastak',
         load: (p) async =>
-            (await repo.stores(page: p, category: category, search: search))
+            (await repo.stores(page: p, category: 'food', search: search))
                 .map((s) => {'store': s})
                 .toList(),
         header: [
@@ -39,18 +38,18 @@ class _DiscoveryScreenState extends ConsumerState<DiscoveryScreen> {
                 icon: const Icon(Icons.notifications_outlined))
           ]),
           const SizedBox(height: 16),
-          Text('Good food.\nEveryday essentials.',
+          Text('What are you\ncraving today?',
               style: Theme.of(context)
                   .textTheme
                   .headlineLarge
                   ?.copyWith(fontWeight: FontWeight.w800)),
-          const SizedBox(height: 12),
-          const Text('Discover the shops around your corner.'),
-          const SizedBox(height: 24),
+          const SizedBox(height: 10),
+          const Text('Order from your favourite restaurants & cafes.'),
+          const SizedBox(height: 20),
           TextField(
               onSubmitted: (v) => setState(() => search = v),
               decoration: InputDecoration(
-                  hintText: 'Search stores and restaurants',
+                  hintText: 'Search restaurants & cafes',
                   prefixIcon: const Icon(Icons.search),
                   suffixIcon: IconButton(
                       tooltip: 'Clear search',
@@ -59,21 +58,6 @@ class _DiscoveryScreenState extends ConsumerState<DiscoveryScreen> {
                             generation++;
                           }),
                       icon: const Icon(Icons.close)))),
-          const SizedBox(height: 18),
-          Wrap(spacing: 8, children: [
-            for (final c in [
-              'all',
-              'food',
-              'groceries',
-              'medicine',
-              'accessories'
-            ])
-              ChoiceChip(
-                  label: Text(human(c)),
-                  selected: (category ?? 'all') == c,
-                  onSelected: (_) =>
-                      setState(() => category = c == 'all' ? null : c))
-          ]),
           const SizedBox(height: 24),
         ],
         item: (j, reload) {

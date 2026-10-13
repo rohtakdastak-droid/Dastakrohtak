@@ -48,42 +48,162 @@ class VendorScreen extends ConsumerWidget {
               onTap: () => context.push('/vendor/store/${j['id']}'))));
 }
 
-class VendorStoreScreen extends ConsumerWidget {
+class VendorStoreScreen extends ConsumerStatefulWidget {
   final String id;
   const VendorStoreScreen(this.id, {super.key});
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<VendorStoreScreen> createState() => _VendorStoreScreenState();
+}
+
+class _VendorStoreScreenState extends ConsumerState<VendorStoreScreen> {
+  @override
+  Widget build(BuildContext context) {
     final repo = ref.watch(repositoryProvider);
     return RemoteList(
         title: 'Store workspace',
-        load: (p) async => p == 0 ? [await repo.one('vendors', id)] : [],
-        item: (j, reload) =>
-            Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
-              Text(j['name'],
-                  style: Theme.of(context).textTheme.headlineMedium),
-              Text(j['dispatch_address']),
-              const SizedBox(height: 20),
-              FilledButton(
-                  onPressed: () => context.push('/vendor/store/$id/menu'),
-                  child: const Text('Manage menu & inventory')),
-              FilledButton(
-                  onPressed: () => context.push('/orders'),
-                  child: const Text('Incoming orders')),
-              ActionButton('Edit store details', () async {
-                await editRecord(context,
-                    title: 'Store details',
-                    fields: storeFields,
-                    initial: j, save: (d) async {
-                  if (!validCoordinates(d['latitude'], d['longitude']) ||
-                      d['service_radius_km'] <= 0) {
-                    throw StateError('Invalid coordinates or service radius');
-                  }
-                  await repo.save('vendors', d, id: id);
-                });
-                reload();
-              })
-            ]));
+        watch: 'orders',
+        load: (p) async {
+          if (p > 0) return [];
+          final vendor = await repo.one('vendors', widget.id);
+          final today = DateTime.now()
+              .toUtc()
+              .copyWith(hour: 0, minute: 0, second: 0, millisecond: 0);
+          final orders = await repo.client
+              .from('orders')
+              .select('status,total_payable_paise,created_at')
+              .eq('vendor_id', widget.id)
+              .gte('created_at', today.toIso8601String());
+          int todayCount = 0, delivered = 0, preparing = 0, cancelled = 0;
+          int revenue = 0;
+          for (final o in (orders as List)) {
+            todayCount++;
+            final s = o['status'];
+            if (s == 'delivered') {
+              delivered++;
+              revenue += (o['total_payable_paise'] ?? 0) as int;
+            } else if (s == 'preparing' ||
+                s == 'ready_for_pickup' ||
+                s == 'vendor_confirmation') {
+              preparing++;
+            } else if (s == 'cancelled' || s == 'rejected') {
+              cancelled++;
+            }
+          }
+          return [
+            {
+              'vendor': vendor,
+              'stats': {
+                'today': todayCount,
+                'delivered': delivered,
+                'preparing': preparing,
+                'cancelled': cancelled,
+                'revenue': revenue
+              }
+            }
+          ];
+        },
+        item: (row, reload) {
+          final j = row['vendor'] as Json;
+          final s = row['stats'] as Json;
+          return Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                Text(j['name'],
+                    style: Theme.of(context).textTheme.headlineMedium),
+                Text(j['dispatch_address']),
+                const SizedBox(height: 16),
+                // Live stats
+                Row(children: [
+                  const Icon(Icons.circle, size: 8, color: Color(0xFF059669)),
+                  const SizedBox(width: 6),
+                  const Text('LIVE',
+                      style: TextStyle(
+                          fontSize: 11,
+                          fontWeight: FontWeight.w800,
+                          color: Color(0xFF059669))),
+                  const SizedBox(width: 10),
+                  const Text("Today's activity",
+                      style:
+                          TextStyle(fontSize: 13, fontWeight: FontWeight.w700))
+                ]),
+                const SizedBox(height: 10),
+                GridView.count(
+                    crossAxisCount: 2,
+                    shrinkWrap: true,
+                    physics: const NeverScrollableScrollPhysics(),
+                    crossAxisSpacing: 10,
+                    mainAxisSpacing: 10,
+                    childAspectRatio: 2.1,
+                    children: [
+                      _statTile(context, 'Orders today', '${s['today']}',
+                          Icons.receipt_long_outlined),
+                      _statTile(context, 'Revenue', money(integer(s['revenue'])),
+                          Icons.payments_outlined,
+                          color: const Color(0xFF059669)),
+                      _statTile(context, 'Preparing', '${s['preparing']}',
+                          Icons.restaurant_outlined,
+                          color: const Color(0xFFEA580C)),
+                      _statTile(context, 'Delivered', '${s['delivered']}',
+                          Icons.check_circle_outlined,
+                          color: const Color(0xFF2563EB))
+                    ]),
+                const SizedBox(height: 16),
+                FilledButton.icon(
+                    onPressed: () =>
+                        context.push('/vendor/store/${widget.id}/menu'),
+                    icon: const Icon(Icons.menu_book_outlined),
+                    label: const Text('Manage menu & inventory')),
+                const SizedBox(height: 8),
+                FilledButton.tonalIcon(
+                    onPressed: () => context.push('/orders'),
+                    icon: const Icon(Icons.receipt_long_outlined),
+                    label: const Text('Incoming orders')),
+                const SizedBox(height: 8),
+                ActionButton('Edit store details', () async {
+                  await editRecord(context,
+                      title: 'Store details',
+                      fields: storeFields,
+                      initial: j, save: (d) async {
+                    if (!validCoordinates(d['latitude'], d['longitude']) ||
+                        d['service_radius_km'] <= 0) {
+                      throw StateError('Invalid coordinates or service radius');
+                    }
+                    await ref.read(repositoryProvider).save('vendors', d, id: widget.id);
+                  });
+                  reload();
+                })
+              ]);
+        });
   }
+}
+
+Widget _statTile(BuildContext context, String label, String value, IconData icon,
+    {Color color = const Color(0xFF374151)}) {
+  return Container(
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+          color: color.withOpacity(0.08),
+          borderRadius: BorderRadius.circular(14)),
+      child: Row(children: [
+        Icon(icon, color: color, size: 22),
+        const SizedBox(width: 10),
+        Expanded(
+            child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+              Text(label,
+                  style: const TextStyle(
+                      fontSize: 11,
+                      fontWeight: FontWeight.w600,
+                      color: Color(0xFF6B7280))),
+              Text(value,
+                  style: TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.w800,
+                      color: color))
+            ]))
+      ]));
 }
 
 class MenuScreen extends ConsumerStatefulWidget {
