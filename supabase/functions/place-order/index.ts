@@ -39,20 +39,36 @@ Deno.serve(async req=>{
   }
   const {data:v,error:vError}=await caller.from('vendors').select('latitude,longitude,is_active,service_radius_km').eq('id',vendor_id).single();
   if(vError||!v?.is_active) return reply({error:'Store unavailable'},400);
+  // Haversine straight-line distance (used as fallback when Google Routes API key is not set).
+  const haversine=(lat1:number,lng1:number,lat2:number,lng2:number)=>{const r=6371;const toRad=(x:number)=>x*Math.PI/180;const dLat=toRad(lat2-lat1);const dLng=toRad(lng2-lng1);const a=Math.sin(dLat/2)**2+Math.cos(toRad(lat1))*Math.cos(toRad(lat2))*Math.sin(dLng/2)**2;return r*2*Math.atan2(Math.sqrt(a),Math.sqrt(1-a));};
   const key=[Deno.env.get('GOOGLE_MAPS_API_KEY'),Deno.env.get('GOOGLE_ROUTES_API_KEY')].map(value=>value?.match(/AIza[A-Za-z0-9_-]{35}/)?.[0]).find(Boolean);
-  if(!key) return reply({error:'Delivery routing is not configured. Contact support.'},503);
-  const routeResponse=await fetch('https://routes.googleapis.com/directions/v2:computeRoutes',{method:'POST',signal:AbortSignal.timeout(15000),headers:{'Content-Type':'application/json','X-Goog-Api-Key':key,'X-Goog-FieldMask':'routes.distanceMeters'},body:JSON.stringify({origin:{location:{latLng:{latitude:Number(v.latitude),longitude:Number(v.longitude)}}},destination:{location:{latLng:{latitude:dest_lat,longitude:dest_lng}}},travelMode:'DRIVE',routingPreference:'TRAFFIC_UNAWARE'})});
-  if(!routeResponse.ok) return reply({error:'Could not calculate road distance. Retry.'},502);
-  const route=await routeResponse.json();
-  const meters=route.routes?.[0]?.distanceMeters;
-  if(!Number.isFinite(meters)||meters<0) return reply({error:'No road route found'},422);
-  const km=meters/1000;
+  let km:number;
+  let provider='haversine';
+  if(key){
+   const routeResponse=await fetch('https://routes.googleapis.com/directions/v2:computeRoutes',{method:'POST',signal:AbortSignal.timeout(15000),headers:{'Content-Type':'application/json','X-Goog-Api-Key':key,'X-Goog-FieldMask':'routes.distanceMeters'},body:JSON.stringify({origin:{location:{latLng:{latitude:Number(v.latitude),longitude:Number(v.longitude)}}},destination:{location:{latLng:{latitude:dest_lat,longitude:dest_lng}}},travelMode:'DRIVE',routingPreference:'TRAFFIC_UNAWARE'})});
+   if(routeResponse.ok){
+    const route=await routeResponse.json();
+    const meters=route.routes?.[0]?.distanceMeters;
+    if(Number.isFinite(meters)&&meters>=0){
+     km=meters/1000;
+     provider='google';
+    } else {
+     // Google returned no route — fall back to haversine with a road-detour multiplier
+     km=haversine(Number(v.latitude),Number(v.longitude),dest_lat,dest_lng)*1.3;
+    }
+   } else {
+    km=haversine(Number(v.latitude),Number(v.longitude),dest_lat,dest_lng)*1.3;
+   }
+  } else {
+   // No Google key configured — use haversine with 1.3x road-detour multiplier
+   km=haversine(Number(v.latitude),Number(v.longitude),dest_lat,dest_lng)*1.3;
+  }
   if(km>Number(v.service_radius_km)) return reply({error:'Address is outside this store’s delivery area'},422);
   if(quote_only){
    const {data,error}=await service.rpc('resolve_checkout',{p_vendor_id:vendor_id,p_items:items,p_distance:km});
-   return error?reply({error:error.message},400):reply({...data,distance_km:km,provider:'google'});
+   return error?reply({error:error.message},400):reply({...data,distance_km:km,provider});
   }
   const {data,error}=await service.rpc('mobile_place_order',{p_customer:user.id,p_request:request_id??crypto.randomUUID(),p_vendor:vendor_id,p_address:dest_address.trim(),p_lat:dest_lat,p_lng:dest_lng,p_distance:km,p_items:items,p_note:customer_note??null,p_expected:expected_total_paise??null});
-  return error?reply({error:error.message},400):reply({order_id:data,distance_km:km,provider:'google'});
+  return error?reply({error:error.message},400):reply({order_id:data,distance_km:km,provider});
  }catch(error){return reply({error:'Checkout temporarily unavailable. Retry the same attempt.', ...(new URL(req.url).searchParams.get('health')==='1'?{failure_type:error instanceof Error?error.name:'Unknown', failure_category:error instanceof Error?(/header|ByteString|character/i.test(error.message)?'invalid_header':/fetch|connect|dns/i.test(error.message)?'network':/AbortSignal|timeout/i.test(error.message)?'timeout_api':'other'):'other'}:{})},503);}
 });

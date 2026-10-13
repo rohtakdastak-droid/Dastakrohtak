@@ -45,21 +45,32 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
             'phone': phone.text.trim()
           },
           emailRedirectTo: 'com.dastak.app://auth/callback');
+      // If the project requires email confirmation, there is no session yet.
+      // Try to sign in directly — if confirmation is off this logs the user in;
+      // if it is on, surface the message so they can confirm by email.
       if (result.session == null) {
-        if (mounted) {
-          toast(context,
-              'Check your email to confirm your account, then sign in.');
+        try {
+          await auth.signInWithPassword(
+              email: email.text.trim(), password: password.text);
+        } catch (_) {
+          if (mounted) {
+            toast(context,
+                'Check your email to confirm your account, then sign in.');
+          }
+          return;
         }
-        return;
       }
       // Make sure the customer profile row carries name and phone.
       try {
-        await repo.client.from('profiles').upsert({
-          'id': result.user?.id,
-          'display_name': displayName.text.trim(),
-          'phone': phone.text.trim(),
-          'role': 'customer'
-        });
+        final uid = auth.currentUser?.id ?? result.user?.id;
+        if (uid != null) {
+          await repo.client.from('profiles').upsert({
+            'id': uid,
+            'display_name': displayName.text.trim(),
+            'phone': phone.text.trim(),
+            'role': 'customer'
+          });
+        }
       } catch (_) {}
     } else {
       await auth.signInWithPassword(
