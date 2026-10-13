@@ -1,0 +1,1 @@
+select net.http_post(url:=(select decrypted_secret from vault.decrypted_secrets where name='dastak_push_url')||'?health=1',headers:=jsonb_build_object('authorization','Bearer '||(select decrypted_secret from vault.decrypted_secrets where name='dastak_push_token'),'content-type','application/json'),body:='{}'::jsonb,timeout_milliseconds:=10000) as probe_request_id;

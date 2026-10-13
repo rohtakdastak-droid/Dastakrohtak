@@ -5,8 +5,10 @@ import App from './App';
 import './index.css';
 import { ThemeProvider } from './lib/theme';
 import { initializeNativeAuth } from './lib/nativeAuth';
+import { setupNativePushListeners } from './lib/nativePush';
 
 void initializeNativeAuth();
+setupNativePushListeners();
 
 ReactDOM.createRoot(document.getElementById('root')!).render(
   <React.StrictMode>

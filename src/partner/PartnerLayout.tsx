@@ -67,7 +67,7 @@ export default function PartnerLayout() {
         <Outlet />
       </main>
 
-      <nav className="fixed inset-x-0 bottom-0 z-40 mx-auto flex max-w-xl justify-around border-t border-neutral-200 bg-white/90 py-2 backdrop-blur dark:border-neutral-800 dark:bg-neutral-950/90 sm:max-w-2xl">
+      <nav className="fixed inset-x-0 bottom-0 z-40 mx-auto flex max-w-xl justify-around border-t border-neutral-200 bg-white/90 py-1.5 pb-safe backdrop-blur dark:border-neutral-800 dark:bg-neutral-950/90 sm:max-w-2xl">
         <Tab to="/partner" end icon={<Bike size={20} />} label="Available" />
         <Tab to="/partner/active" icon={<Package size={20} />} label="Active" />
         <Tab to="/partner/earnings" icon={<Wallet size={20} />} label="Earnings" />

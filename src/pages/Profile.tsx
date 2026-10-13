@@ -9,7 +9,7 @@ export default function Profile() {
   const { session, role } = useRole();
 
   return (
-    <div className="page-enter p-4 pb-28">
+    <div className="page-enter p-4 pb-20">
       {/* Avatar + greeting */}
       <div className="flex items-center gap-4">
         <div className="flex h-16 w-16 items-center justify-center rounded-full bg-gradient-to-br from-brand-400 to-brand-600 text-2xl font-bold text-white shadow-lg shadow-brand-500/20">
@@ -44,7 +44,7 @@ export default function Profile() {
       )}
 
       {/* Appearance */}
-      <div className="card mt-6 p-5">
+      <div className="card mt-6 p-4 sm:p-5">
         <div className="text-xs font-bold uppercase tracking-widest text-neutral-400">Appearance</div>
         <div className="mt-3 grid grid-cols-3 gap-2">
           <ThemeOpt active={theme === 'light'} onClick={() => setTheme('light')} icon={<Sun size={18} />} label="Light" />

@@ -1,147 +1,58 @@
-// supabase/functions/place-order/index.ts
-//
-// Server-authoritative order placement: recomputes the road-route distance via
-// Google Maps Routes API using the vendor's dispatch coordinates (read from the
-// DB — not from the client), then calls the `create_order` RPC with the trusted
-// distance. The client is never trusted for pricing-critical inputs.
-//
-// Deploy:
-//   supabase functions deploy place-order
-
-// deno-lint-ignore-file no-explicit-any
+// Server-only routing and transactional checkout. Never falls back to client pricing.
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.45.4';
-
-const CORS = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
-  'Access-Control-Allow-Methods': 'POST, OPTIONS',
-};
-
-function json(body: unknown, init: ResponseInit = {}) {
-  return new Response(JSON.stringify(body), {
-    ...init,
-    headers: { 'content-type': 'application/json', ...CORS, ...(init.headers ?? {}) },
-  });
-}
-
-async function roadDistanceKm(
-  key: string,
-  originLat: number,
-  originLng: number,
-  destLat: number,
-  destLng: number
-): Promise<{ km: number; sec: number | null } | null> {
-  const r = await fetch(
-    'https://routes.googleapis.com/directions/v2:computeRoutes',
-    {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'X-Goog-Api-Key': key,
-        'X-Goog-FieldMask': 'routes.distanceMeters,routes.duration',
-      },
-      body: JSON.stringify({
-        origin: { location: { latLng: { latitude: originLat, longitude: originLng } } },
-        destination: { location: { latLng: { latitude: destLat, longitude: destLng } } },
-        travelMode: 'DRIVE',
-        routingPreference: 'TRAFFIC_UNAWARE',
-        units: 'METRIC',
-      }),
-    }
-  );
-  if (!r.ok) return null;
-  const data = await r.json();
-  const route = data?.routes?.[0];
-  if (!route?.distanceMeters) return null;
-  const sec = parseInt(String(route.duration ?? '').replace('s', ''), 10);
-  return { km: route.distanceMeters / 1000, sec: Number.isFinite(sec) ? sec : null };
-}
-
-Deno.serve(async (req) => {
-  if (req.method === 'OPTIONS') return new Response('ok', { headers: CORS });
-  if (req.method !== 'POST') return json({ error: 'method_not_allowed' }, { status: 405 });
-
-  const auth = req.headers.get('Authorization') ?? '';
-  if (!auth.startsWith('Bearer ')) return json({ error: 'unauthorized' }, { status: 401 });
-
-  const SUPABASE_URL = Deno.env.get('SUPABASE_URL');
-  const SUPABASE_ANON_KEY = Deno.env.get('SUPABASE_ANON_KEY');
-  if (!SUPABASE_URL || !SUPABASE_ANON_KEY) return json({ error: 'misconfigured' }, { status: 500 });
-
-  const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
-    global: { headers: { Authorization: auth } },
-    auth: { persistSession: false, autoRefreshToken: false },
-  });
-  const { data: identity, error: authError } = await supabase.auth.getUser(auth.slice(7));
-  if (authError || !identity.user) return json({ error: 'unauthorized' }, { status: 401 });
-
-  let payload: any;
-  try { payload = await req.json(); } catch { return json({ error: 'bad_json' }, { status: 400 }); }
-
-  const {
-    vendor_id,
-    dest_address,
-    dest_lat,
-    dest_lng,
-    items,
-    customer_note,
-  } = payload ?? {};
-
-  if (
-    typeof vendor_id !== 'string' ||
-    typeof dest_address !== 'string' || !dest_address ||
-    typeof dest_lat !== 'number' || typeof dest_lng !== 'number' ||
-    !Array.isArray(items) || items.length === 0
-  ) {
-    return json({ error: 'bad_input' }, { status: 400 });
+const cors = {'Access-Control-Allow-Origin':'*','Access-Control-Allow-Headers':'authorization,x-client-info,apikey,content-type','Access-Control-Allow-Methods':'POST,OPTIONS'};
+const reply=(body:unknown,status=200)=>new Response(JSON.stringify(body),{status,headers:{...cors,'Content-Type':'application/json'}});
+Deno.serve(async req=>{
+ if(req.method==='OPTIONS') return reply({});
+ if(req.method!=='POST') return reply({error:'method_not_allowed'},405);
+ try {
+  const token=(req.headers.get('Authorization')??'').replace(/^Bearer /,'');
+  if(new URL(req.url).searchParams.get('health')==='1'){
+   if(!Deno.env.get('PUSH_WEBHOOK_TOKEN')||token!==Deno.env.get('PUSH_WEBHOOK_TOKEN')) return reply({error:'Unauthorized'},401);
+   const key=[Deno.env.get('GOOGLE_MAPS_API_KEY'),Deno.env.get('GOOGLE_ROUTES_API_KEY')].map(value=>value?.match(/AIza[A-Za-z0-9_-]{35}/)?.[0]).find(Boolean);
+   if(!key) return reply({routing_ready:false,reason:'missing_key'},503);
+   const check=await fetch('https://routes.googleapis.com/directions/v2:computeRoutes',{method:'POST',signal:AbortSignal.timeout(15000),headers:{'Content-Type':'application/json','X-Goog-Api-Key':key,'X-Goog-FieldMask':'routes.distanceMeters'},body:JSON.stringify({origin:{location:{latLng:{latitude:28.8955,longitude:76.6066}}},destination:{location:{latLng:{latitude:28.901,longitude:76.613}}},travelMode:'DRIVE',routingPreference:'TRAFFIC_UNAWARE'})});
+   const result=await check.json().catch(()=>({error:{status:'NON_JSON_RESPONSE'}}));
+   const ready=check.ok&&Number.isFinite(result.routes?.[0]?.distanceMeters);
+   return reply({routing_ready:ready,provider_status:check.status,reason:result.error?.status??null},ready?200:503);
   }
-
-  // Look up the vendor's dispatch coordinates server-side — never trust client.
-  const { data: vendor, error: vErr } = await supabase
-    .from('vendors')
-    .select('id, latitude, longitude, is_active, service_radius_km')
-    .eq('id', vendor_id)
-    .single();
-  if (vErr || !vendor || !vendor.is_active) {
-    return json({ error: 'vendor_unavailable' }, { status: 400 });
+  const url=Deno.env.get('SUPABASE_URL')!;
+  const caller=createClient(url,Deno.env.get('SUPABASE_ANON_KEY')!,{auth:{persistSession:false},global:{headers:{Authorization:`Bearer ${token}`}}});
+  const {data:{user},error:authError}=await caller.auth.getUser(token);
+  if(authError||!user) return reply({error:'Sign in to continue'},401);
+  const input=await req.json();
+  const {vendor_id,dest_address,dest_lat,dest_lng,items,customer_note,quote_only,request_id,expected_total_paise}=input;
+  if(typeof vendor_id!=='string'||typeof dest_address!=='string'||dest_address.trim().length<8||dest_address.length>1000||
+   !Number.isFinite(dest_lat)||!Number.isFinite(dest_lng)||Math.abs(dest_lat)>90||Math.abs(dest_lng)>180||
+   !Array.isArray(items)||items.length<1||items.length>100||
+   (customer_note!=null&&(typeof customer_note!=='string'||customer_note.length>1000))) return reply({error:'Invalid checkout details'},400);
+  if(!quote_only&&request_id!=null&&!/^[0-9a-f-]{36}$/i.test(request_id)) return reply({error:'Invalid request ID'},400);
+  const service=createClient(url,Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!,{auth:{persistSession:false,autoRefreshToken:false}});
+  // A retry after a lost response must work even if routing is temporarily offline.
+  if(!quote_only&&request_id){
+   const {data:prior}=await service.from('checkout_attempts').select('order_id').eq('customer_id',user.id).eq('request_id',request_id).maybeSingle();
+   if(prior?.order_id){
+    // RPC validates the original request fingerprint before returning the same order.
+    const {data,error}=await service.rpc('mobile_place_order',{p_customer:user.id,p_request:request_id,p_vendor:vendor_id,p_address:dest_address.trim(),p_lat:dest_lat,p_lng:dest_lng,p_distance:0,p_items:items,p_note:customer_note??null,p_expected:expected_total_paise??null});
+    return error?reply({error:error.message},400):reply({order_id:data});
+   }
   }
-
-  // Server-side routing. If Google isn't configured, we refuse rather than
-  // silently falling back — the spec requires the user retry or re-enter the
-  // address rather than paying based on an invented distance.
-  const key = Deno.env.get('GOOGLE_MAPS_API_KEY') || Deno.env.get('GOOGLE_ROUTES_API_KEY');
-  let km: number | null = null;
-  let provider = 'google';
-  if (key) {
-    const r = await roadDistanceKm(
-      key,
-      Number(vendor.latitude), Number(vendor.longitude),
-      dest_lat, dest_lng
-    );
-    if (!r) {
-      return json({ error: 'routing_failed', message: 'Could not compute route. Please re-check your address and retry.' }, { status: 502 });
-    }
-    km = r.km;
-  } else {
-    return json({ error: 'routing_not_configured', message: 'Delivery routing is not configured. Please contact support.' }, { status: 503 });
+  const {data:v,error:vError}=await caller.from('vendors').select('latitude,longitude,is_active,service_radius_km').eq('id',vendor_id).single();
+  if(vError||!v?.is_active) return reply({error:'Store unavailable'},400);
+  const key=[Deno.env.get('GOOGLE_MAPS_API_KEY'),Deno.env.get('GOOGLE_ROUTES_API_KEY')].map(value=>value?.match(/AIza[A-Za-z0-9_-]{35}/)?.[0]).find(Boolean);
+  if(!key) return reply({error:'Delivery routing is not configured. Contact support.'},503);
+  const routeResponse=await fetch('https://routes.googleapis.com/directions/v2:computeRoutes',{method:'POST',signal:AbortSignal.timeout(15000),headers:{'Content-Type':'application/json','X-Goog-Api-Key':key,'X-Goog-FieldMask':'routes.distanceMeters'},body:JSON.stringify({origin:{location:{latLng:{latitude:Number(v.latitude),longitude:Number(v.longitude)}}},destination:{location:{latLng:{latitude:dest_lat,longitude:dest_lng}}},travelMode:'DRIVE',routingPreference:'TRAFFIC_UNAWARE'})});
+  if(!routeResponse.ok) return reply({error:'Could not calculate road distance. Retry.'},502);
+  const route=await routeResponse.json();
+  const meters=route.routes?.[0]?.distanceMeters;
+  if(!Number.isFinite(meters)||meters<0) return reply({error:'No road route found'},422);
+  const km=meters/1000;
+  if(km>Number(v.service_radius_km)) return reply({error:'Address is outside this store’s delivery area'},422);
+  if(quote_only){
+   const {data,error}=await service.rpc('resolve_checkout',{p_vendor_id:vendor_id,p_items:items,p_distance:km});
+   return error?reply({error:error.message},400):reply({...data,distance_km:km,provider:'google'});
   }
-
-  if (km > Number(vendor.service_radius_km)) {
-    return json({ error: 'out_of_service_area', km }, { status: 400 });
-  }
-
-  const { data: orderId, error: oErr } = await supabase.rpc('create_order', {
-    p_vendor_id: vendor_id,
-    p_dest_address: dest_address,
-    p_dest_lat: dest_lat,
-    p_dest_lng: dest_lng,
-    p_distance_km: km,
-    p_route_provider: provider,
-    p_items: items,
-    p_customer_note: customer_note ?? null,
-  });
-
-  if (oErr) return json({ error: 'create_order_failed', message: oErr.message }, { status: 400 });
-
-  return json({ order_id: orderId, distance_km: km, provider });
+  const {data,error}=await service.rpc('mobile_place_order',{p_customer:user.id,p_request:request_id??crypto.randomUUID(),p_vendor:vendor_id,p_address:dest_address.trim(),p_lat:dest_lat,p_lng:dest_lng,p_distance:km,p_items:items,p_note:customer_note??null,p_expected:expected_total_paise??null});
+  return error?reply({error:error.message},400):reply({order_id:data,distance_km:km,provider:'google'});
+ }catch(error){return reply({error:'Checkout temporarily unavailable. Retry the same attempt.', ...(new URL(req.url).searchParams.get('health')==='1'?{failure_type:error instanceof Error?error.name:'Unknown', failure_category:error instanceof Error?(/header|ByteString|character/i.test(error.message)?'invalid_header':/fetch|connect|dns/i.test(error.message)?'network':/AbortSignal|timeout/i.test(error.message)?'timeout_api':'other'):'other'}:{})},503);}
 });

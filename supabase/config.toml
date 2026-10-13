@@ -9,3 +9,5 @@ additional_redirect_urls = ["https://rohtak-dastak.vercel.app/", "com.dastak.app
 verify_jwt = false
 [functions.place-order]
 verify_jwt = false
+[functions.send-push]
+verify_jwt = false

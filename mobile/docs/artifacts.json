@@ -1,0 +1,29 @@
+{
+  "date": "2026-10-13",
+  "configuration": "Signed Android release: existing Supabase public config; PUSH_ENABLED=true; old debug and AAB unchanged",
+  "debug_apk": {
+    "path": "build/app/outputs/apk/debug/app-debug.apk",
+    "bytes": 432326974,
+    "sha256": "26BE80FBFB15AB413FA6861E2C67CDBF8D9DAEA1360567B5C814C663E926F4BA",
+    "device_tested": false
+  },
+  "release_aab": {
+    "path": "build/app/outputs/bundle/release/app-release.aab",
+    "bytes": 25357577,
+    "sha256": "847F75336746159FFD381C41854342D11D83277494176C28414A72AAEDC163B0",
+    "signed": false
+  },
+  "flutter_tests": 16,
+  "postgres_tests": 23,
+  "analyzer": "No issues found",
+  "production_migration_applied": true,
+  "ios_archive_built": false,
+  "release_apk": {
+    "device_tested": false,
+    "sha256": "ADA27CF4DF4BA5ACFA3B4DE9677B17FCE6097359F743AF39D2CA0DCA5939D83A",
+    "push_enabled": true,
+    "signed": true,
+    "path": "build/app/outputs/apk/release/app-release.apk",
+    "bytes": 53480299
+  }
+}

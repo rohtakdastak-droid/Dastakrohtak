@@ -37,7 +37,7 @@ export default function Earnings() {
     <div>
       <h1 className="text-xl font-bold">Earnings</h1>
 
-      <div className="mt-4 grid grid-cols-3 gap-2">
+      <div className="mt-4 grid grid-cols-2 gap-2 sm:grid-cols-3">
         <Card label="Today" count={s?.today_count ?? 0} paise={s?.today_paise ?? 0} />
         <Card label="This week" count={s?.week_count ?? 0} paise={s?.week_paise ?? 0} />
         <Card label="This month" count={s?.month_count ?? 0} paise={s?.month_paise ?? 0} />

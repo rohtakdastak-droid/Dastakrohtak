@@ -1,6 +1,23 @@
+import React from 'react';
 import { Routes, Route, Link, useLocation } from 'react-router-dom';
 import { Home as HomeIcon, ShoppingBag, Receipt, User } from 'lucide-react';
 import Home from './pages/Home';
+
+class ErrorBoundary extends React.Component<{ children: React.ReactNode }, { error: Error | null }> {
+  state: { error: Error | null } = { error: null };
+  static getDerivedStateFromError(error: Error) { return { error }; }
+  render() {
+    if (this.state.error) return (
+      <div className="flex min-h-screen flex-col items-center justify-center p-6 text-center">
+        <div className="text-4xl">⚠️</div>
+        <div className="mt-3 text-lg font-bold">Something went wrong</div>
+        <div className="mt-2 max-w-sm text-sm text-neutral-500">{this.state.error.message}</div>
+        <button className="btn-primary mt-4" onClick={() => { this.setState({ error: null }); window.location.href = '/'; }}>Go Home</button>
+      </div>
+    );
+    return this.props.children;
+  }
+}
 import Vendor from './pages/Vendor';
 import Cart from './pages/Cart';
 import Checkout from './pages/Checkout';
@@ -30,7 +47,8 @@ import Earnings from './partner/pages/Earnings';
 import PartnerProfile from './partner/pages/PartnerProfile';
 import { useCart } from './lib/cart';
 
-export default function App() {
+export default function App() { return <ErrorBoundary><AppInner /></ErrorBoundary>; }
+function AppInner() {
   const location = useLocation();
   const isAdmin = location.pathname.startsWith('/admin');
   const isPartner = location.pathname.startsWith('/partner');
@@ -113,7 +131,7 @@ export default function App() {
       </main>
 
       {!hideNav && (
-        <nav className="fixed inset-x-0 bottom-0 z-40 mx-auto flex max-w-xl items-center justify-around border-t border-neutral-200/80 bg-white/95 px-2 py-1.5 backdrop-blur-xl dark:border-neutral-800/80 dark:bg-neutral-950/95 sm:max-w-2xl">
+        <nav className="fixed inset-x-0 bottom-0 z-40 mx-auto flex max-w-xl items-center justify-around border-t border-neutral-200/80 bg-white/95 px-2 py-1.5 pb-safe backdrop-blur-xl dark:border-neutral-800/80 dark:bg-neutral-950/95 sm:max-w-2xl">
           <TabLink to="/" icon={<HomeIcon size={20} />} label="Home" />
           <TabLink to="/cart" icon={<ShoppingBag size={20} />} label="Cart" badge={itemCount} />
           <TabLink to="/orders" icon={<Receipt size={20} />} label="Orders" />

@@ -83,7 +83,7 @@ export default function Login() {
         </button>
       </div>
 
-      <div className="flex flex-1 flex-col items-center justify-center px-6 py-6">
+      <div className="flex flex-col items-center justify-center px-6 py-6">
         <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-white/20 backdrop-blur">
           <UtensilsCrossed size={30} className="text-white" />
         </div>

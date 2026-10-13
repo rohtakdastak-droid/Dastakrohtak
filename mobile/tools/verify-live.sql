@@ -1,0 +1,1 @@
+select jsonb_build_object('checkout',mobile_checkout_capabilities(),'push_vault_secrets',(select count(*) from vault.secrets where name in ('dastak_push_url','dastak_push_token')),'realtime_tables',(select jsonb_agg(tablename) from pg_publication_tables where pubname='supabase_realtime' and schemaname='public')) as readiness;

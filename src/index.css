@@ -85,4 +85,8 @@
   /* Mobile-friendly table wrapper */
   .table-responsive { @apply -mx-4 overflow-x-auto px-4 md:mx-0 md:px-0; }
   .table-responsive table { @apply min-w-[600px] md:min-w-0; }
+
+  /* Safe-area bottom padding for fixed navs */
+  .pb-safe { padding-bottom: env(safe-area-inset-bottom, 0px); }
+  .pt-safe { padding-top: env(safe-area-inset-top, 0px); }
 }

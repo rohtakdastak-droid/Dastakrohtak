@@ -41,13 +41,13 @@ export default function VendorProfile() {
       <div className="text-sm text-neutral-500">Admins control name, category, images and account status.</div>
 
       <section className="card mt-4 p-5">
-        <div className="grid grid-cols-2 gap-3">
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
           <F label="Name"><input className="input" value={draft.name} disabled /></F>
           <F label="Category"><input className="input capitalize" value={draft.category} disabled /></F>
-          <F label="Description" className="col-span-2">
+          <F label="Description" className="sm:col-span-2">
             <textarea className="input" rows={3} value={draft.description ?? ''} onChange={(e) => setDraft({ ...draft, description: e.target.value })} />
           </F>
-          <F label="Dispatch address" className="col-span-2">
+          <F label="Dispatch address" className="sm:col-span-2">
             <input className="input" value={draft.dispatch_address} onChange={(e) => setDraft({ ...draft, dispatch_address: e.target.value })} />
           </F>
           <F label="Latitude">

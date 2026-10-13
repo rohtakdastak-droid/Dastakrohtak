@@ -53,7 +53,7 @@ export default function Orders() {
   }
 
   return (
-    <div className="page-enter p-4 pb-28">
+    <div className="page-enter p-4 pb-20">
       <h1 className="text-xl font-bold">Your orders</h1>
       {loadingList && <div className="mt-4 space-y-3">{[1,2,3].map(i=><div key={i} className="skeleton h-24 rounded-2xl" />)}</div>}
       {!loadingList && orders.length === 0 && (

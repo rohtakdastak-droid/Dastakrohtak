@@ -111,7 +111,7 @@ export async function placeOrder(input: {
     customer_id: session.user.id,
     vendor_id: input.vendor_id,
     category: vendor.category ?? 'restaurant',
-    status: 'pending',
+    status: 'pending_payment',
     items_subtotal_paise: itemsSubtotalPaise,
     delivery_fee_paise: feePaise,
     delivery_distance_km: distKm,

@@ -22,12 +22,14 @@ export default function Home() {
         .from('vendors')
         .select('*')
         .eq('is_active', true)
+        .eq('category', 'food')
         .order('sort_priority', { ascending: true }),
       supabase
         .from('products')
-        .select('*, vendors!inner(name, is_active)')
+        .select('*, vendors!inner(name, is_active, category)')
         .eq('is_available', true)
-        .eq('vendors.is_active', true),
+        .eq('vendors.is_active', true)
+        .eq('vendors.category', 'food'),
     ]).then(([vendorRes, productRes]) => {
       if (vendorRes.error) console.error(vendorRes.error);
       if (productRes.error) console.error(productRes.error);
@@ -78,7 +80,7 @@ export default function Home() {
   return (
     <div className="page-enter">
       {/* Header */}
-      <div className="bg-gradient-to-br from-brand-500 via-brand-600 to-brand-700 px-4 pb-8 pt-6 text-white">
+      <div className="bg-gradient-to-br from-brand-500 via-brand-600 to-brand-700 px-4 pb-5 pt-5 text-white sm:pb-8 sm:pt-6">
         <div className="flex items-center justify-between">
           <Link to="/profile" className="flex min-w-0 items-center gap-2">
             <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-white/20 backdrop-blur">
@@ -150,7 +152,7 @@ export default function Home() {
                   key={v.id}
                   to={`/vendor/${v.id}`}
                   state={{ vegOnly: dietFilter === 'veg' }}
-                  className="group relative min-w-[200px] shrink-0 overflow-hidden rounded-3xl"
+                  className="group relative min-w-[160px] shrink-0 overflow-hidden rounded-3xl sm:min-w-[200px]"
                 >
                   <div className="h-32 bg-gradient-to-br from-brand-400 to-brand-600 transition-transform duration-300 group-hover:scale-105" />
                   <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/20 to-transparent" />
@@ -219,7 +221,7 @@ export default function Home() {
           )}
         </div>
 
-        <div className="mt-3 space-y-3 pb-28">
+        <div className="mt-3 space-y-3 pb-20">
           {loading && [1, 2, 3].map((i) => (
             <div key={i} className="flex gap-3 rounded-3xl border border-neutral-200/80 bg-white p-3 dark:border-neutral-800/80 dark:bg-neutral-900">
               <div className="h-24 w-24 shrink-0 skeleton rounded-2xl" />
@@ -231,7 +233,7 @@ export default function Home() {
             </div>
           ))}
           {!loading && filtered.length === 0 && foodResults.length === 0 && (
-            <div className="card p-8 text-center">
+            <div className="card p-5 text-center sm:p-8">
               <div className="text-4xl">🍽️</div>
               <div className="mt-2 text-sm font-semibold text-neutral-600 dark:text-neutral-400">No results found</div>
               <div className="mt-1 text-xs text-neutral-400">Try a different search or filter</div>

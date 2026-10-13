@@ -51,9 +51,9 @@ export default function Vendor() {
     d === 'non_veg' ? 'border-red-500 bg-red-500' : 'border-neutral-400 bg-neutral-400';
 
   return (
-    <div className="page-enter pb-28">
+    <div className="page-enter pb-20">
       {/* Hero */}
-      <div className="relative h-48 bg-gradient-to-br from-brand-400 via-brand-500 to-brand-700">
+      <div className="relative h-40 bg-gradient-to-br from-brand-400 via-brand-500 to-brand-700 sm:h-48">
         <div className="absolute inset-0 bg-gradient-to-t from-black/50 to-transparent" />
         <Link to="/" className="absolute left-4 top-4 z-10 flex h-10 w-10 items-center justify-center rounded-2xl bg-white/90 text-neutral-800 shadow-lg backdrop-blur transition hover:bg-white dark:bg-neutral-900/90 dark:text-neutral-100">
           <ArrowLeft size={18} />
@@ -108,7 +108,7 @@ export default function Vendor() {
       {/* Menu */}
       <div className="mt-4 space-y-3 px-4">
         {shown.length === 0 && (
-          <div className="card p-8 text-center">
+          <div className="card p-5 text-center sm:p-8">
             <div className="text-3xl">🥗</div>
             <div className="mt-2 text-sm font-semibold text-neutral-500">No items to show</div>
           </div>

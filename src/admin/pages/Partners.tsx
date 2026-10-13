@@ -1,7 +1,8 @@
 import { useEffect, useState } from 'react';
-import { Check, Pause, Play, UserPlus, Copy } from 'lucide-react';
+import { Check, Pause, Play, UserPlus, Copy, Package, Wallet, Store } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
 import { adminCreateUser } from '../../lib/adminApi';
+import { formatRupees } from '../../lib/deliveryFee';
 
 type Row = {
   user_id: string;
@@ -10,6 +11,12 @@ type Row = {
   approved_at: string | null;
   is_online: boolean;
   profile: { display_name: string | null; phone: string | null; status: string } | null;
+};
+
+type PartnerStats = {
+  deliveries: number;
+  earnings: number;
+  restaurants: { name: string; count: number }[];
 };
 
 export default function Partners() {
@@ -27,12 +34,40 @@ export default function Partners() {
   const [createError, setCreateError] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
 
+  const [pStats, setPStats] = useState<Record<string, PartnerStats>>({});
+  const [expanded, setExpanded] = useState<string | null>(null);
+
   async function load() {
     const { data } = await supabase
       .from('delivery_partner_profiles')
       .select('user_id,partner_qr_code,vehicle_number,approved_at,is_online,profile:profiles!user_id(display_name,phone,status)')
       .order('user_id');
-    setRows((data as unknown as Row[]) ?? []);
+    const partners = (data as unknown as Row[]) ?? [];
+    setRows(partners);
+
+    const stats: Record<string, PartnerStats> = {};
+    await Promise.all(partners.map(async (p) => {
+      const [delCount, earnData, vendorData] = await Promise.all([
+        supabase.from('delivery_assignments').select('id', { count: 'exact', head: true }).eq('partner_id', p.user_id).eq('status', 'accepted'),
+        supabase.from('delivery_earnings').select('net_paise').eq('partner_id', p.user_id),
+        supabase.from('delivery_assignments').select('orders!inner(vendor_id, vendors(name))').eq('partner_id', p.user_id).eq('status', 'accepted'),
+      ]);
+      const rMap = new Map<string, { name: string; count: number }>();
+      for (const a of (vendorData.data ?? []) as any[]) {
+        const vid = a.orders?.vendor_id;
+        const vname = a.orders?.vendors?.name ?? 'Unknown';
+        if (!vid) continue;
+        const cur = rMap.get(vid);
+        if (cur) cur.count++;
+        else rMap.set(vid, { name: vname, count: 1 });
+      }
+      stats[p.user_id] = {
+        deliveries: delCount.count ?? 0,
+        earnings: (earnData.data ?? []).reduce((s: number, r: any) => s + r.net_paise, 0),
+        restaurants: Array.from(rMap.values()).sort((a, b) => b.count - a.count),
+      };
+    }));
+    setPStats(stats);
   }
   useEffect(() => { load(); }, []);
 
@@ -114,9 +149,11 @@ export default function Partners() {
 
       {/* Mobile card layout */}
       <div className="mt-4 space-y-2 md:hidden">
-        {rows.map((r) => (
+        {rows.map((r) => {
+          const st = pStats[r.user_id];
+          return (
           <div key={r.user_id} className="card p-3">
-            <div className="flex items-start justify-between gap-2">
+            <div className="flex items-start justify-between gap-2" onClick={() => setExpanded(expanded === r.user_id ? null : r.user_id)}>
               <div className="min-w-0 flex-1">
                 <div className="flex items-center gap-2">
                   <span className="font-semibold">{r.profile?.display_name ?? r.user_id.slice(0, 8)}</span>
@@ -130,6 +167,24 @@ export default function Partners() {
                 <div className="text-[10px] text-neutral-400">{r.approved_at ? new Date(r.approved_at).toLocaleDateString() : 'Not approved'}</div>
               </div>
             </div>
+            {/* Stats row */}
+            <div className="mt-2 flex items-center gap-3 text-[11px]">
+              <span className="inline-flex items-center gap-1 text-neutral-500"><Package size={12} /> {st?.deliveries ?? 0} deliveries</span>
+              <span className="inline-flex items-center gap-1 text-green-600"><Wallet size={12} /> {formatRupees(st?.earnings ?? 0)}</span>
+              <span className="inline-flex items-center gap-1 text-neutral-400"><Store size={12} /> {st?.restaurants.length ?? 0} restaurants</span>
+            </div>
+            {/* Expanded detail */}
+            {expanded === r.user_id && st && st.restaurants.length > 0 && (
+              <div className="mt-2 rounded-lg bg-neutral-50 p-2 dark:bg-neutral-900">
+                <div className="text-[10px] font-semibold uppercase tracking-wider text-neutral-500">Restaurants</div>
+                {st.restaurants.map((rest) => (
+                  <div key={rest.name} className="mt-1 flex items-center justify-between text-xs">
+                    <span>{rest.name}</span>
+                    <span className="text-neutral-500">{rest.count} deliveries</span>
+                  </div>
+                ))}
+              </div>
+            )}
             <div className="mt-2 flex items-center gap-2 border-t border-neutral-100 pt-2 dark:border-neutral-800">
               {r.partner_qr_code && <span className="truncate rounded bg-neutral-100 px-2 py-0.5 font-mono text-[10px] dark:bg-neutral-800">{r.partner_qr_code}</span>}
               <div className="flex-1" />
@@ -144,7 +199,8 @@ export default function Partners() {
               )}
             </div>
           </div>
-        ))}
+          );
+        })}
         {rows.length === 0 && <div className="py-6 text-center text-sm text-neutral-500">No delivery partners yet.</div>}
       </div>
 
@@ -158,7 +214,9 @@ export default function Partners() {
               <th className="px-3 py-2">Vehicle</th>
               <th className="px-3 py-2">QR</th>
               <th className="px-3 py-2">Status</th>
-              <th className="px-3 py-2">Approved</th>
+              <th className="px-3 py-2 text-center">Deliveries</th>
+              <th className="px-3 py-2 text-right">Earnings</th>
+              <th className="px-3 py-2 text-center">Restaurants</th>
               <th className="px-3 py-2">Online</th>
               <th className="px-3 py-2 text-right">Actions</th>
             </tr>
@@ -171,7 +229,9 @@ export default function Partners() {
                 <td className="px-3 py-2 text-xs">{r.vehicle_number ?? '—'}</td>
                 <td className="px-3 py-2 font-mono text-xs">{r.partner_qr_code}</td>
                 <td className="px-3 py-2 text-xs">{r.profile?.status ?? '—'}</td>
-                <td className="px-3 py-2 text-xs text-neutral-500">{r.approved_at ? new Date(r.approved_at).toLocaleDateString() : '—'}</td>
+                <td className="px-3 py-2 text-center font-semibold">{pStats[r.user_id]?.deliveries ?? 0}</td>
+                <td className="px-3 py-2 text-right font-semibold text-green-600">{formatRupees(pStats[r.user_id]?.earnings ?? 0)}</td>
+                <td className="px-3 py-2 text-center text-xs">{pStats[r.user_id]?.restaurants.map(r => r.name).join(', ') || '—'}</td>
                 <td className="px-3 py-2">
                   <span className={`h-2 w-2 inline-block rounded-full ${r.is_online ? 'bg-green-500' : 'bg-neutral-300'}`} />
                 </td>
@@ -189,7 +249,7 @@ export default function Partners() {
               </tr>
             ))}
             {rows.length === 0 && (
-              <tr><td colSpan={8} className="px-3 py-6 text-center text-sm text-neutral-500">No delivery partners yet.</td></tr>
+              <tr><td colSpan={11} className="px-3 py-6 text-center text-sm text-neutral-500">No delivery partners yet.</td></tr>
             )}
           </tbody>
         </table>

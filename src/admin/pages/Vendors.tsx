@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { Plus, Pencil, Power, ArrowUp, ArrowDown, Trash2, Star, UserPlus, Copy, Check } from 'lucide-react';
+import { Plus, Pencil, Power, ArrowUp, ArrowDown, Trash2, Star, UserPlus, Copy, Check, ShoppingBag, Bike } from 'lucide-react';
 import { supabase, type Vendor } from '../../lib/supabase';
 import { adminCreateUser } from '../../lib/adminApi';
 
@@ -16,10 +16,22 @@ export default function Vendors() {
   const [list, setList] = useState<Vendor[]>([]);
   const [editing, setEditing] = useState<Partial<Vendor> | null>(null);
   const [filter, setFilter] = useState<string>('all');
+  const [vendorStats, setVendorStats] = useState<Record<string, { orders: number; delivered: number }>>({});
 
   async function load() {
     const { data } = await supabase.from('vendors').select('*').order('sort_priority');
-    setList((data as Vendor[]) ?? []);
+    const vendors = (data as Vendor[]) ?? [];
+    setList(vendors);
+
+    const stats: Record<string, { orders: number; delivered: number }> = {};
+    await Promise.all(vendors.map(async (v) => {
+      const [totalOrders, totalDelivered] = await Promise.all([
+        supabase.from('orders').select('id', { count: 'exact', head: true }).eq('vendor_id', v.id).neq('status', 'cart'),
+        supabase.from('orders').select('id', { count: 'exact', head: true }).eq('vendor_id', v.id).eq('status', 'delivered'),
+      ]);
+      stats[v.id] = { orders: totalOrders.count ?? 0, delivered: totalDelivered.count ?? 0 };
+    }));
+    setVendorStats(stats);
   }
   useEffect(() => { load(); }, []);
 
@@ -131,6 +143,10 @@ export default function Vendors() {
                 <div className="font-semibold">{v.name}</div>
                 <div className="mt-0.5 text-xs capitalize text-neutral-500">{v.category}</div>
                 {v.dispatch_address && <div className="mt-1 truncate text-xs text-neutral-400">{v.dispatch_address}</div>}
+                <div className="mt-1.5 flex items-center gap-3">
+                  <span className="inline-flex items-center gap-1 text-[11px] text-neutral-500"><ShoppingBag size={12} /> {vendorStats[v.id]?.orders ?? 0} orders</span>
+                  <span className="inline-flex items-center gap-1 text-[11px] text-green-600"><Bike size={12} /> {vendorStats[v.id]?.delivered ?? 0} delivered</span>
+                </div>
               </div>
               <div className="flex items-center gap-1">
                 <button onClick={() => move(i, -1)} className="flex h-8 w-8 items-center justify-center rounded-lg bg-neutral-100 dark:bg-neutral-800"><ArrowUp size={14} /></button>
@@ -163,6 +179,8 @@ export default function Vendors() {
               <th className="px-3 py-2">Name</th>
               <th className="px-3 py-2">Category</th>
               <th className="px-3 py-2">Address</th>
+              <th className="px-3 py-2 text-center">Orders</th>
+              <th className="px-3 py-2 text-center">Delivered</th>
               <th className="px-3 py-2 text-center">Active</th>
               <th className="px-3 py-2 text-center">Featured</th>
               <th className="px-3 py-2 text-right">Actions</th>
@@ -180,6 +198,8 @@ export default function Vendors() {
                 <td className="px-3 py-2 font-medium">{v.name}</td>
                 <td className="px-3 py-2 capitalize">{v.category}</td>
                 <td className="px-3 py-2 text-xs text-neutral-500">{v.dispatch_address}</td>
+                <td className="px-3 py-2 text-center font-semibold">{vendorStats[v.id]?.orders ?? 0}</td>
+                <td className="px-3 py-2 text-center font-semibold text-green-600">{vendorStats[v.id]?.delivered ?? 0}</td>
                 <td className="px-3 py-2 text-center">
                   <button onClick={() => toggleActive(v)} className={v.is_active ? 'text-green-600' : 'text-neutral-400'}>
                     <Power size={16} />
@@ -198,7 +218,7 @@ export default function Vendors() {
               </tr>
             ))}
             {filtered.length === 0 && (
-              <tr><td colSpan={7} className="px-3 py-6 text-center text-sm text-neutral-500">No vendors.</td></tr>
+              <tr><td colSpan={9} className="px-3 py-6 text-center text-sm text-neutral-500">No vendors.</td></tr>
             )}
           </tbody>
         </table>

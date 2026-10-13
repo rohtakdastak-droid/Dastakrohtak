@@ -102,7 +102,7 @@ export default function PartnerProfile() {
         <p className="mt-1 text-xs text-neutral-500">
           Submit a document reference for admin review. Never share your full Aadhaar — Dastak only stores a masked reference and the admin verifies through an authorized process.
         </p>
-        <div className="mt-3 grid grid-cols-2 gap-2">
+        <div className="mt-3 grid grid-cols-1 gap-2 sm:grid-cols-2">
           <select className="input" value={docType} onChange={(e) => setDocType(e.target.value)}>
             <option value="driving_license">Driving licence</option>
             <option value="vehicle_rc">Vehicle RC</option>

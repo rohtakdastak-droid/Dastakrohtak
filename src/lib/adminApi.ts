@@ -32,8 +32,15 @@ export async function adminCreateUser(input: {
   const { data: signUpData, error: signUpErr } = await supabase.auth.signUp({
     email: input.email,
     password,
-    options: { data: { display_name: displayName } },
+    options: {
+      data: { display_name: displayName },
+      emailRedirectTo: undefined,
+    },
   });
+
+  if (signUpErr && signUpErr.message.includes('rate limit')) {
+    return { ok: false, error: 'rate_limit', message: 'Email rate limit exceeded. Please wait a few minutes and try again, or deploy the admin-create-user Edge Function to bypass this limit.' };
+  }
 
   if (signUpErr) return { ok: false, error: 'create_failed', message: signUpErr.message };
   if (!signUpData.user) return { ok: false, error: 'create_failed', message: 'User creation failed.' };

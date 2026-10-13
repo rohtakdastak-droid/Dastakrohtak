@@ -8,6 +8,8 @@
 //   VAPID_PUBLIC_KEY    — base64url-encoded VAPID public key
 //   VAPID_PRIVATE_KEY   — base64url-encoded VAPID private key
 //   VAPID_SUBJECT       — mailto: or https:// contact for the push service
+//   FCM_SERVICE_ACCOUNT — JSON string of the Firebase service account private key
+//   FCM_PROJECT_ID      — Firebase project ID (e.g. dastak-5ad52)
 //
 // Deploy:
 //   supabase functions deploy send-push
@@ -131,6 +133,53 @@ async function sendPushToEndpoint(
   return { ok: resp.ok, status: resp.status };
 }
 
+// ─── FCM V1 auth (service account → OAuth2 access token) ────────────────
+
+async function getFcmAccessToken(serviceAccountJson: string): Promise<string | null> {
+  try {
+    const sa = JSON.parse(serviceAccountJson);
+    const now = Math.floor(Date.now() / 1000);
+    const header = btoa(JSON.stringify({ alg: 'RS256', typ: 'JWT' })).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+    const claim = btoa(JSON.stringify({
+      iss: sa.client_email,
+      scope: 'https://www.googleapis.com/auth/firebase.messaging',
+      aud: 'https://oauth2.googleapis.com/token',
+      iat: now,
+      exp: now + 3600,
+    })).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+
+    const input = new TextEncoder().encode(`${header}.${claim}`);
+
+    const pemBody = sa.private_key
+      .replace(/-----BEGIN PRIVATE KEY-----/, '')
+      .replace(/-----END PRIVATE KEY-----/, '')
+      .replace(/\s/g, '');
+    const keyBuf = Uint8Array.from(atob(pemBody), (c) => c.charCodeAt(0));
+    const cryptoKey = await crypto.subtle.importKey(
+      'pkcs8', keyBuf, { name: 'RSASSA-PKCS1-v1_5', hash: 'SHA-256' }, false, ['sign']
+    );
+
+    const sig = new Uint8Array(await crypto.subtle.sign('RSASSA-PKCS1-v1_5', cryptoKey, input));
+    let sigB64 = '';
+    sig.forEach((b) => (sigB64 += String.fromCharCode(b)));
+    sigB64 = btoa(sigB64).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+
+    const jwt = `${header}.${claim}.${sigB64}`;
+
+    const resp = await fetch('https://oauth2.googleapis.com/token', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+      body: `grant_type=urn:ietf:params:oauth:grant-type:jwt-bearer&assertion=${jwt}`,
+    });
+
+    if (!resp.ok) return null;
+    const data = await resp.json();
+    return data.access_token ?? null;
+  } catch {
+    return null;
+  }
+}
+
 // ─── Handler ──────────────────────────────────────────────────────────────
 
 Deno.serve(async (req) => {
@@ -141,10 +190,31 @@ Deno.serve(async (req) => {
   const bearer = req.headers.get('authorization')?.replace('Bearer ', '');
   if (!token || bearer !== token) return json({ error: 'unauthorized' }, { status: 401 });
 
+  // Authenticated diagnostics never send a notification or return credentials.
+  if (new URL(req.url).searchParams.get('health') === '1') {
+    const raw = Deno.env.get('FCM_SERVICE_ACCOUNT');
+    const project = Deno.env.get('FCM_PROJECT_ID');
+    let matchingProject = false;
+    try { matchingProject = JSON.parse(raw ?? '{}').project_id === project; } catch { /* invalid configuration */ }
+    const accessToken = raw && matchingProject ? await getFcmAccessToken(raw) : null;
+    let fcmApiOk = false;
+    if (accessToken) {
+      const validation = await fetch(`https://fcm.googleapis.com/v1/projects/${project}/messages:send`, {
+        method: 'POST', signal: AbortSignal.timeout(10000),
+        headers: { Authorization: `Bearer ${accessToken}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify({ validate_only: true, message: {
+          topic: 'dastak_configuration_validation', notification: { title: 'Configuration validation' }
+        } }),
+      });
+      fcmApiOk = validation.ok;
+    }
+    return json({ fcm_oauth_ok: Boolean(accessToken), project_matches: matchingProject,
+      fcm_api_validation_ok: fcmApiOk }, { status: fcmApiOk ? 200 : 503 });
+  }
+
   const VAPID_PUBLIC = Deno.env.get('VAPID_PUBLIC_KEY');
   const VAPID_PRIVATE = Deno.env.get('VAPID_PRIVATE_KEY');
   const VAPID_SUBJECT = Deno.env.get('VAPID_SUBJECT') ?? 'mailto:hello@dastak.app';
-  if (!VAPID_PUBLIC || !VAPID_PRIVATE) return json({ error: 'vapid_not_configured' }, { status: 500 });
 
   let payload: any;
   try { payload = await req.json(); } catch { return json({ error: 'bad_json' }, { status: 400 }); }
@@ -163,7 +233,63 @@ Deno.serve(async (req) => {
     .select('endpoint, p256dh, auth')
     .eq('user_id', user_id);
 
-  if (!subs || subs.length === 0) return json({ sent: 0 });
+  // ─── FCM V1 (native Android/iOS) ────────────────────────────────────────
+  const FCM_SA_RAW = Deno.env.get('FCM_SERVICE_ACCOUNT');
+  const FCM_PROJECT = Deno.env.get('FCM_PROJECT_ID');
+  let fcmSent = 0;
+
+  if (FCM_SA_RAW && FCM_PROJECT) {
+    const { data: fcmTokens } = await sb
+      .from('fcm_tokens')
+      .select('token')
+      .eq('user_id', user_id);
+
+    if (fcmTokens && fcmTokens.length > 0) {
+      const accessToken = await getFcmAccessToken(FCM_SA_RAW);
+      if (accessToken) {
+        const goneFcm: string[] = [];
+        for (const row of fcmTokens) {
+          try {
+            const resp = await fetch(
+              `https://fcm.googleapis.com/v1/projects/${FCM_PROJECT}/messages:send`,
+              {
+                method: 'POST',
+                headers: {
+                  Authorization: `Bearer ${accessToken}`,
+                  'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                  message: {
+                    token: row.token,
+                    notification: { title, body: body ?? '' },
+                    data: { order_id: order_id ?? '', type: type ?? '' },
+                    android: {
+                      priority: 'high',
+                      notification: { channel_id: 'dastak_orders' },
+                    },
+                  },
+                }),
+              }
+            );
+            if (resp.ok) {
+              fcmSent++;
+            } else {
+              const err = await resp.json().catch(() => ({}));
+              if (err?.error?.code === 404 || err?.error?.details?.some?.((d: any) => d.errorCode === 'UNREGISTERED')) {
+                goneFcm.push(row.token);
+              }
+            }
+          } catch { /* network error — skip */ }
+        }
+        if (goneFcm.length > 0) {
+          await sb.from('fcm_tokens').delete().in('token', goneFcm);
+        }
+      }
+    }
+  }
+
+  if (!subs || subs.length === 0) return json({ sent: fcmSent });
+  if (!VAPID_PUBLIC || !VAPID_PRIVATE) return json({ sent: fcmSent, error: 'vapid_not_configured' }, { status: 503 });
 
   const { privateKey, pubRaw } = await importVapidKeys(VAPID_PUBLIC, VAPID_PRIVATE);
   const pushPayload = JSON.stringify({ title, body: body ?? '', order_id, type });
@@ -186,5 +312,5 @@ Deno.serve(async (req) => {
     await sb.from('push_subscriptions').delete().in('endpoint', gone);
   }
 
-  return json({ sent, cleaned: gone.length });
+  return json({ sent: sent + fcmSent, cleaned: gone.length });
 });

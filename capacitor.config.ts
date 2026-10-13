@@ -10,8 +10,10 @@ const config: CapacitorConfig = {
   android: {
     buildOptions: {
       signingType: 'apksigner'
-    }
-  }
+    },
+    backgroundColor: '#FAFAFA'
+  },
+  backgroundColor: '#FAFAFA'
 };
 
 export default config;

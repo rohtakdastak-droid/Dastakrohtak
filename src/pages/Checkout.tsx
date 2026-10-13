@@ -136,22 +136,21 @@ export default function Checkout() {
       items,
       customer_note: null,
     });
-    setPlacing(false);
-
     if (!res.ok) {
+      setPlacing(false);
       setError(res.message ?? 'Order could not be placed. Please try again.');
       return;
     }
 
+    navigate(`/orders/${res.order_id}`, { replace: true });
     cart.clear();
-    navigate(`/orders/${res.order_id}`);
   }
 
   // Default center: Rohtak or user's last location
   const defaultLat = lat ?? 28.8955;
   const defaultLng = lng ?? 76.6066;
 
-  if (cart.items.length === 0) {
+  if (cart.items.length === 0 && !placing) {
     return (
       <div className="page-enter flex min-h-[60vh] flex-col items-center justify-center p-6 text-center">
         <div className="text-4xl">🛒</div>
@@ -164,7 +163,7 @@ export default function Checkout() {
   }
 
   return (
-    <div className="page-enter px-4 pb-28 pt-4">
+    <div className="page-enter px-4 pb-20 pt-4">
       <h1 className="text-lg font-bold">Checkout</h1>
       {vendor && (
         <div className="mt-0.5 flex items-center gap-1.5 text-xs text-neutral-500">

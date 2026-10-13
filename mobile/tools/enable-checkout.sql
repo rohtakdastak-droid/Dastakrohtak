@@ -1,0 +1,1 @@
+update app_settings set value='true'::jsonb where key='mobile_checkout_enabled'; select mobile_checkout_capabilities(); select coalesce(current_setting('app.push_webhook_url',true),'')<>'' as push_url_set, coalesce(current_setting('app.push_webhook_token',true),'')<>'' as push_token_set;

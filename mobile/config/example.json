@@ -1,0 +1,6 @@
+{
+  "SUPABASE_URL": "",
+  "SUPABASE_ANON_KEY": "",
+  "APP_ENV": "staging",
+  "PUSH_ENABLED": "false"
+}

@@ -20,7 +20,7 @@ export default function Cart() {
   }
 
   return (
-    <div className="page-enter p-4 pb-28">
+    <div className="page-enter p-4 pb-20">
       <h1 className="text-xl font-bold">Your cart</h1>
       <div className="mt-1 flex items-center gap-2 text-xs text-neutral-500">
         <div className="h-1.5 w-1.5 rounded-full bg-brand-500" />

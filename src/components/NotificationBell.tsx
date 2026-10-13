@@ -4,6 +4,7 @@ import { Link } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
 import { useSession } from '../lib/auth';
 import { pushSupported, subscribePush } from '../lib/push';
+import { isNativePush, registerNativePush } from '../lib/nativePush';
 
 type Notif = {
   id: string;
@@ -74,15 +75,20 @@ export default function NotificationBell({ className = '', orderLinkBase = '/ord
   const [pushReady, setPushReady] = useState(false);
 
   useEffect(() => {
-    if (!session || !pushSupported()) return;
-    if ('Notification' in window && Notification.permission === 'granted') {
+    if (!session) return;
+    if (isNativePush()) {
+      registerNativePush(session.user.id).then((ok) => setPushReady(ok));
+    } else if (pushSupported() && 'Notification' in window && Notification.permission === 'granted') {
       subscribePush(session.user.id).then((ok) => setPushReady(ok));
     }
   }, [session?.user.id]);
 
-  async function requestBrowserPermission() {
+  async function requestPushPermission() {
     if (!session) return;
-    if ('Notification' in window && Notification.permission === 'default') {
+    if (isNativePush()) {
+      const ok = await registerNativePush(session.user.id);
+      setPushReady(ok);
+    } else if ('Notification' in window && Notification.permission === 'default') {
       const perm = await Notification.requestPermission();
       if (perm === 'granted' && pushSupported()) {
         const ok = await subscribePush(session.user.id);
@@ -98,7 +104,7 @@ export default function NotificationBell({ className = '', orderLinkBase = '/ord
       <button
         onClick={() => {
           setOpen((v) => !v);
-          requestBrowserPermission();
+          requestPushPermission();
         }}
         className="relative rounded-full p-2 hover:bg-neutral-100 dark:hover:bg-neutral-900"
         aria-label="Notifications"
@@ -116,8 +122,8 @@ export default function NotificationBell({ className = '', orderLinkBase = '/ord
           <div className="flex items-center justify-between border-b border-neutral-200 px-3 py-2 dark:border-neutral-800">
             <div className="text-sm font-semibold">Notifications</div>
             <div className="flex items-center gap-2">
-              {pushSupported() && !pushReady && Notification.permission !== 'denied' && (
-                <button onClick={requestBrowserPermission} className="inline-flex items-center gap-1 text-xs text-brand-600" title="Enable push notifications">
+              {(isNativePush() || pushSupported()) && !pushReady && (typeof Notification === 'undefined' || Notification.permission !== 'denied') && (
+                <button onClick={requestPushPermission} className="inline-flex items-center gap-1 text-xs text-brand-600" title="Enable push notifications">
                   <BellRing size={12} /> Enable push
                 </button>
               )}

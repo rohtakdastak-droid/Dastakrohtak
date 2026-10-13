@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">Dastak</string>
+    <string name="title_activity_main">Dastak</string>
+    <string name="package_name">com.dastak.app</string>
+    <string name="custom_url_scheme">com.dastak.app</string>
+</resources>
