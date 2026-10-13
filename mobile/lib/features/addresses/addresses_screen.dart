@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:latlong2/latlong.dart';
 import 'package:url_launcher/url_launcher.dart';
+import 'package:geolocator/geolocator.dart';
 import '../../core/models.dart';
 import '../../core/providers.dart';
 import '../../core/widgets.dart';
@@ -68,12 +69,49 @@ class AddressEditor extends ConsumerStatefulWidget {
 
 class _AddressEditorState extends ConsumerState<AddressEditor> {
   final form = GlobalKey<FormState>();
+  final mapController = MapController();
   late final TextEditingController label,
       address,
       instructions,
       latitude,
       longitude;
   LatLng? pin;
+  bool locating = false;
+
+  Future<void> useCurrentLocation() async {
+    setState(() => locating = true);
+    try {
+      final enabled = await Geolocator.isLocationServiceEnabled();
+      if (!enabled) {
+        throw StateError('Please enable location services on your device');
+      }
+      var perm = await Geolocator.checkPermission();
+      if (perm == LocationPermission.denied) {
+        perm = await Geolocator.requestPermission();
+      }
+      if (perm == LocationPermission.denied ||
+          perm == LocationPermission.deniedForever) {
+        throw StateError(
+            'Location permission is required to use your current location');
+      }
+      final pos = await Geolocator.getCurrentPosition(
+          desiredAccuracy: LocationAccuracy.high);
+      final here = LatLng(pos.latitude, pos.longitude);
+      setState(() {
+        pin = here;
+        latitude.text = pos.latitude.toStringAsFixed(6);
+        longitude.text = pos.longitude.toStringAsFixed(6);
+      });
+      try {
+        mapController.move(here, 16);
+      } catch (_) {}
+      if (mounted) toast(context, 'Location captured');
+    } catch (e) {
+      if (mounted) toast(context, errorText(e));
+    } finally {
+      if (mounted) setState(() => locating = false);
+    }
+  }
   @override
   void initState() {
     super.initState();
@@ -110,13 +148,32 @@ class _AddressEditorState extends ConsumerState<AddressEditor> {
                     requiredValue: false),
                 const SizedBox(height: 12),
                 const Text(
-                    'Tap your delivery point on the map, or enter coordinates from a known address. No device location is collected.'),
+                    'Tap your delivery point on the map, or use your current location.'),
+                const SizedBox(height: 12),
+                SizedBox(
+                    width: double.infinity,
+                    child: FilledButton.tonalIcon(
+                        onPressed: locating ? null : useCurrentLocation,
+                        icon: locating
+                            ? const SizedBox(
+                                width: 16,
+                                height: 16,
+                                child:
+                                    CircularProgressIndicator(strokeWidth: 2))
+                            : const Icon(Icons.my_location),
+                        label: Text(locating
+                            ? 'Locating…'
+                            : 'Use my current location'),
+                        style: FilledButton.styleFrom(
+                            backgroundColor: const Color(0xFFFFF4E8),
+                            foregroundColor: const Color(0xFFFF6B00)))),
                 const SizedBox(height: 12),
                 ClipRRect(
                     borderRadius: BorderRadius.circular(16),
                     child: SizedBox(
                         height: 300,
                         child: FlutterMap(
+                            mapController: mapController,
                             options: MapOptions(
                                 initialCenter:
                                     pin ?? const LatLng(28.8955, 76.6066),
