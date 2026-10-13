@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:google_fonts/google_fonts.dart';
 import '../../core/models.dart';
 import '../../core/providers.dart';
 import '../../core/widgets.dart';
@@ -62,19 +63,40 @@ class _DiscoveryScreenState extends ConsumerState<DiscoveryScreen> {
                 Expanded(
                     child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
-                        children: const [
+                        children: [
                           Text('Dastak',
-                              style: TextStyle(
-                                  fontSize: 20,
+                              style: GoogleFonts.playfairDisplay(
+                                  fontSize: 24,
                                   fontWeight: FontWeight.w900,
-                                  color: Color(0xFF0369A1),
-                                  letterSpacing: 0.5)),
-                          Text("Dil Se Ghar Tak • Rohtak's Local Delivery",
-                              style: TextStyle(
-                                  fontSize: 11,
-                                  fontWeight: FontWeight.w600,
-                                  color: Color(0xFF0369A1),
-                                  height: 1.3))
+                                  color: const Color(0xFF0369A1),
+                                  letterSpacing: 0.3,
+                                  height: 1)),
+                          const SizedBox(height: 2),
+                          Row(children: [
+                            Flexible(
+                                child: Text('Dil Se Ghar Tak',
+                                    style: GoogleFonts.dancingScript(
+                                        fontSize: 16,
+                                        fontWeight: FontWeight.w700,
+                                        color: const Color(0xFF0284C7),
+                                        fontStyle: FontStyle.italic,
+                                        height: 1.1))),
+                            const SizedBox(width: 6),
+                            Container(
+                                width: 3,
+                                height: 3,
+                                decoration: const BoxDecoration(
+                                    color: Color(0xFF0284C7),
+                                    shape: BoxShape.circle)),
+                            const SizedBox(width: 6),
+                            Flexible(
+                                child: Text("Rohtak's Local Delivery",
+                                    style: GoogleFonts.poppins(
+                                        fontSize: 10,
+                                        fontWeight: FontWeight.w600,
+                                        color: const Color(0xFF075985),
+                                        letterSpacing: 0.4)))
+                          ])
                         ]))
               ])),
           const SizedBox(height: 16),

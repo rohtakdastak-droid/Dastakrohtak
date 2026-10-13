@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import 'package:google_fonts/google_fonts.dart';
 
 class SplashScreen extends StatefulWidget {
   const SplashScreen({super.key});
@@ -97,31 +98,58 @@ class _SplashScreenState extends State<SplashScreen>
                                   opacity: logoT,
                                   child: Transform.translate(
                                       offset: Offset(0, (1 - logoT) * 20),
-                                      child: const Text('Dastak',
-                                          style: TextStyle(
+                                      child: Text('Dastak',
+                                          style: GoogleFonts.playfairDisplay(
                                               color: Colors.white,
-                                              fontSize: 46,
+                                              fontSize: 56,
                                               fontWeight: FontWeight.w900,
-                                              letterSpacing: 2)))),
-                              const SizedBox(height: 10),
+                                              letterSpacing: 1,
+                                              shadows: [
+                                                Shadow(
+                                                    color: Colors.black
+                                                        .withOpacity(0.25),
+                                                    blurRadius: 18,
+                                                    offset: const Offset(0, 4))
+                                              ])))),
+                              const SizedBox(height: 14),
                               Opacity(
                                   opacity: taglineT,
                                   child: Transform.translate(
                                       offset: Offset(0, (1 - taglineT) * 12),
-                                      child: Container(
-                                          padding: const EdgeInsets.symmetric(
-                                              horizontal: 14, vertical: 6),
-                                          decoration: BoxDecoration(
-                                              color: Colors.white.withOpacity(0.14),
-                                              borderRadius:
-                                                  BorderRadius.circular(999)),
-                                          child: const Text(
-                                              'Dil Se Ghar Tak • Rohtak\'s Local Delivery',
-                                              style: TextStyle(
-                                                  color: Colors.white,
-                                                  fontSize: 12,
-                                                  fontWeight: FontWeight.w600,
-                                                  letterSpacing: 0.5))))),
+                                      child: Row(
+                                          mainAxisAlignment:
+                                              MainAxisAlignment.center,
+                                          children: [
+                                            Container(
+                                                width: 24,
+                                                height: 1,
+                                                color: Colors.white
+                                                    .withOpacity(0.6)),
+                                            const SizedBox(width: 10),
+                                            Text('Dil Se Ghar Tak',
+                                                style: GoogleFonts.dancingScript(
+                                                    color: Colors.white,
+                                                    fontSize: 24,
+                                                    fontWeight: FontWeight.w700,
+                                                    fontStyle: FontStyle.italic,
+                                                    letterSpacing: 0.3)),
+                                            const SizedBox(width: 10),
+                                            Container(
+                                                width: 24,
+                                                height: 1,
+                                                color: Colors.white
+                                                    .withOpacity(0.6))
+                                          ]))),
+                              const SizedBox(height: 6),
+                              Opacity(
+                                  opacity: taglineT,
+                                  child: Text(
+                                      "ROHTAK'S LOCAL DELIVERY",
+                                      style: GoogleFonts.poppins(
+                                          color: Colors.white.withOpacity(0.75),
+                                          fontSize: 11,
+                                          fontWeight: FontWeight.w600,
+                                          letterSpacing: 3.5))),
                               const SizedBox(height: 60),
                               Opacity(
                                   opacity: taglineT,
