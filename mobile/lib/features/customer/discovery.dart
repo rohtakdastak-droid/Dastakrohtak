@@ -37,6 +37,46 @@ class _DiscoveryScreenState extends ConsumerState<DiscoveryScreen> {
                 onPressed: () => context.push('/notifications'),
                 icon: const Icon(Icons.notifications_outlined))
           ]),
+          const SizedBox(height: 12),
+          // Branded tagline card
+          Container(
+              width: double.infinity,
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+              decoration: BoxDecoration(
+                  gradient: const LinearGradient(
+                      begin: Alignment.topLeft,
+                      end: Alignment.bottomRight,
+                      colors: [Color(0xFFE0F2FE), Color(0xFFF0F9FF)]),
+                  borderRadius: BorderRadius.circular(18),
+                  border:
+                      Border.all(color: const Color(0xFFBAE6FD), width: 1)),
+              child: Row(children: [
+                Container(
+                    padding: const EdgeInsets.all(10),
+                    decoration: BoxDecoration(
+                        color: const Color(0xFF0EA5E9),
+                        borderRadius: BorderRadius.circular(12)),
+                    child: const Icon(Icons.doorbell_rounded,
+                        color: Colors.white, size: 22)),
+                const SizedBox(width: 12),
+                Expanded(
+                    child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: const [
+                          Text('Dastak',
+                              style: TextStyle(
+                                  fontSize: 20,
+                                  fontWeight: FontWeight.w900,
+                                  color: Color(0xFF0369A1),
+                                  letterSpacing: 0.5)),
+                          Text("Dil Se Ghar Tak • Rohtak's Local Delivery",
+                              style: TextStyle(
+                                  fontSize: 11,
+                                  fontWeight: FontWeight.w600,
+                                  color: Color(0xFF0369A1),
+                                  height: 1.3))
+                        ]))
+              ])),
           const SizedBox(height: 16),
           Text('What are you\ncraving today?',
               style: Theme.of(context)

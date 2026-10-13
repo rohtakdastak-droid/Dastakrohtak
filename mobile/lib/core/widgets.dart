@@ -94,7 +94,7 @@ class PageFrame extends StatelessWidget {
             _ => 0
           },
           onDestinationSelected: (i) =>
-              context.go(['/', '/cart', '/orders', '/profile'][i]),
+              context.go(['/home', '/cart', '/orders', '/profile'][i]),
           destinations: const [
             NavigationDestination(
                 icon: Icon(Icons.storefront_outlined), label: 'Discover'),

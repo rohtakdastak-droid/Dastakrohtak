@@ -66,7 +66,7 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
           email: email.text.trim(), password: password.text);
     }
     ref.invalidate(accountProvider);
-    if (mounted) context.go('/');
+    if (mounted) context.go('/home');
   }
 
   @override
@@ -182,7 +182,7 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
                                     }
                                   }),
                                   TextButton(
-                                      onPressed: () => context.go('/'),
+                                      onPressed: () => context.go('/home'),
                                       child: const Text('Browse stores'))
                                 ],
                               ])))))));

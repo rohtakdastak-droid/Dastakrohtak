@@ -20,6 +20,7 @@ import '../features/admin/settings_screen.dart';
 import '../features/settings/profile_screen.dart';
 import '../features/notifications/notifications_screen.dart';
 import '../features/notifications/push_service.dart';
+import '../features/splash/splash_screen.dart';
 
 class DastakApp extends ConsumerStatefulWidget {
   const DastakApp({super.key});
@@ -46,7 +47,8 @@ class _DastakAppState extends ConsumerState<DastakApp> {
     router = GoRouter(
         initialLocation: '/',
         routes: [
-          GoRoute(path: '/', builder: (c, s) => const DiscoveryScreen()),
+          GoRoute(path: '/', builder: (c, s) => const SplashScreen()),
+          GoRoute(path: '/home', builder: (c, s) => const DiscoveryScreen()),
           GoRoute(path: '/login', builder: (c, s) => const AuthScreen()),
           GoRoute(
               path: '/reset',

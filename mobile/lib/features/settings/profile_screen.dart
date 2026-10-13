@@ -65,7 +65,7 @@ class ProfileScreen extends ConsumerWidget {
                 await repo.client.auth.signOut();
                 await ref.read(cartProvider.notifier).clear();
                 ref.invalidate(accountProvider);
-                if (context.mounted) context.go('/');
+                if (context.mounted) context.go('/home');
               }),
               TextButton(
                   onPressed: () => showLicensePage(
