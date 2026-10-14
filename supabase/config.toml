@@ -7,5 +7,7 @@ additional_redirect_urls = ["https://rohtak-dastak.vercel.app/", "com.dastak.app
 # These functions validate user JWTs with auth.getUser before doing any work.
 [functions.place-order]
 verify_jwt = false
+[functions.places-search]
+verify_jwt = false
 [functions.send-push]
 verify_jwt = false

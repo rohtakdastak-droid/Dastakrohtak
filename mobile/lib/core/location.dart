@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:flutter_map/flutter_map.dart';
@@ -106,14 +107,107 @@ Marker pinMarker(LatLng point, IconData icon, Color color, {String? label}) =>
             message: label ?? '',
             child: Icon(icon, size: 40, color: color, semanticLabel: label)));
 
+/// Type-ahead address search. Hides itself when the server search is not available.
+class AddressSearch extends ConsumerStatefulWidget {
+  final LatLng? near;
+  final void Function(LatLng point, String title, String description) onSelected;
+  const AddressSearch({required this.onSelected, this.near, super.key});
+  @override
+  ConsumerState<AddressSearch> createState() => _AddressSearchState();
+}
+
+class _AddressSearchState extends ConsumerState<AddressSearch> {
+  final text = TextEditingController();
+  Timer? debounce;
+  List<Map<String, dynamic>> results = [];
+  bool busy = false, available = true;
+  int ticket = 0;
+
+  @override
+  void dispose() {
+    debounce?.cancel();
+    text.dispose();
+    super.dispose();
+  }
+
+  void changed(String value) {
+    debounce?.cancel();
+    if (value.trim().length < 3) {
+      setState(() => results = []);
+      return;
+    }
+    debounce = Timer(const Duration(milliseconds: 400), () => search(value.trim()));
+  }
+
+  Future<void> search(String value) async {
+    final my = ++ticket;
+    setState(() => busy = true);
+    try {
+      final near = widget.near ?? rohtakCenter;
+      final found = await ref.read(repositoryProvider).searchPlaces(value, lat: near.latitude, lng: near.longitude);
+      if (mounted && my == ticket) setState(() => results = found);
+    } catch (_) {
+      if (mounted) setState(() => available = false);
+    } finally {
+      if (mounted && my == ticket) setState(() => busy = false);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    if (!available) return const SizedBox.shrink();
+    return Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
+      TextField(
+          controller: text,
+          onChanged: changed,
+          textInputAction: TextInputAction.search,
+          decoration: InputDecoration(
+              hintText: 'Search area, street or landmark',
+              prefixIcon: const Icon(Icons.search),
+              suffixIcon: busy
+                  ? const Padding(
+                      padding: EdgeInsets.all(14),
+                      child: SizedBox.square(dimension: 16, child: CircularProgressIndicator(strokeWidth: 2)))
+                  : (text.text.isEmpty
+                      ? null
+                      : IconButton(
+                          tooltip: 'Clear search',
+                          onPressed: () => setState(() {
+                                text.clear();
+                                results = [];
+                              }),
+                          icon: const Icon(Icons.close))))),
+      for (final r in results)
+        ListTile(
+            dense: true,
+            contentPadding: const EdgeInsets.symmetric(horizontal: 4),
+            leading: const Icon(Icons.place_outlined),
+            title: Text('${r['title']}', maxLines: 1, overflow: TextOverflow.ellipsis),
+            subtitle: Text('${r['subtitle']}', maxLines: 2, overflow: TextOverflow.ellipsis),
+            onTap: () {
+              FocusScope.of(context).unfocus();
+              widget.onSelected(LatLng((r['lat'] as num).toDouble(), (r['lng'] as num).toDouble()), '${r['title']}',
+                  '${r['description']}');
+              setState(() {
+                text.text = '${r['title']}';
+                results = [];
+              });
+            }),
+      const SizedBox(height: 8),
+    ]);
+  }
+}
+
 /// Map pin picker with "use current location". Manual tapping always works when GPS is denied.
 class LocationPicker extends StatefulWidget {
   final LatLng? initial;
   final ValueChanged<LatLng> onChanged;
   final double height;
   final String hint;
+  final void Function(String title, String description)? onAddressChosen;
   const LocationPicker(
       {required this.onChanged,
+      this.onAddressChosen,
       this.initial,
       this.height = 260,
       this.hint = 'Tap the map to drop the pin exactly at the delivery point.',
@@ -161,6 +255,12 @@ class _LocationPickerState extends State<LocationPicker> {
   Widget build(BuildContext context) => Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
+            AddressSearch(
+                near: pin,
+                onSelected: (point, title, description) {
+                  place(point, move: true);
+                  widget.onAddressChosen?.call(title, description);
+                }),
             OutlinedButton.icon(
                 onPressed: locating ? null : locate,
                 icon: locating

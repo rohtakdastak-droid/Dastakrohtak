@@ -117,6 +117,16 @@ class DastakRepository {
         (data as List).map((j) => Map<String, dynamic>.from(j as Map)));
   }
 
+  /// Address suggestions from the server (Ola Maps). Throws when search is unavailable.
+  Future<List<Json>> searchPlaces(String input, {double? lat, double? lng}) async {
+    final response = await client.functions
+        .invoke('places-search', body: {'input': input, 'lat': lat, 'lng': lng})
+        .timeout(const Duration(seconds: 10));
+    final data = response.data;
+    if (data is! Map || data['suggestions'] is! List) throw StateError('Address search unavailable');
+    return List<Json>.from((data['suggestions'] as List).map((j) => Map<String, dynamic>.from(j as Map)));
+  }
+
   Future<String> signedUrl(String bucket, String path, {int seconds = 120}) =>
       client.storage
           .from(bucket)

@@ -254,7 +254,11 @@ class _AddressEditorState extends ConsumerState<AddressEditor> {
                 Text('Delivery point on map *', style: context.text.titleMedium),
                 const SizedBox(height: 8),
                 LocationPicker(
-                    initial: pin, onChanged: (p) => setState(() => pin = p)),
+                    initial: pin,
+                    onChanged: (p) => setState(() => pin = p),
+                    onAddressChosen: (title, _) {
+                      if (!legacyMode && street.text.trim().isEmpty) street.text = title;
+                    }),
                 const SizedBox(height: 16),
                 if (problem != null)
                   Notice(problem!, icon: Icons.error_outline, color: danger),
