@@ -5,6 +5,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:latlong2/latlong.dart';
 import 'package:url_launcher/url_launcher.dart';
+import 'app_map.dart';
 import 'providers.dart';
 import 'theme.dart';
 import 'widgets.dart';
@@ -122,7 +123,7 @@ class LocationPicker extends StatefulWidget {
 }
 
 class _LocationPickerState extends State<LocationPicker> {
-  final map = MapController();
+  final map = GlobalKey<AppMapState>();
   LatLng? pin;
   bool locating = false;
   String? problem;
@@ -139,11 +140,7 @@ class _LocationPickerState extends State<LocationPicker> {
       problem = null;
     });
     widget.onChanged(point);
-    if (move) {
-      try {
-        map.move(point, 17);
-      } catch (_) {}
-    }
+    if (move) map.currentState?.moveTo(point, 17);
   }
 
   Future<void> locate() async {
@@ -185,21 +182,12 @@ class _LocationPickerState extends State<LocationPicker> {
                 borderRadius: BorderRadius.circular(16),
                 child: SizedBox(
                     height: widget.height,
-                    child: FlutterMap(
-                        mapController: map,
-                        options: MapOptions(
-                            initialCenter: pin ?? rohtakCenter,
-                            initialZoom: pin == null ? 13 : 16,
-                            onTap: (_, point) => place(point)),
-                        children: [
-                          osmTiles(),
-                          if (pin != null)
-                            MarkerLayer(markers: [
-                              pinMarker(pin!, Icons.location_pin, brandBlue,
-                                  label: 'Selected point')
-                            ]),
-                          osmAttribution()
-                        ]))),
+                    child: AppMap(
+                        key: map,
+                        center: pin ?? rohtakCenter,
+                        zoom: pin == null ? 13 : 16,
+                        pins: [if (pin != null) MapPin(pin!, Icons.location_pin, brandBlue, 'Selected point')],
+                        onTap: place))),
             const SizedBox(height: 6),
             Row(children: [
               Icon(pin == null ? Icons.error_outline : Icons.check_circle,

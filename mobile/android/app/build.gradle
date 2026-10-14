@@ -28,9 +28,14 @@ def signingProperties = new Properties()
 def signingFile = rootProject.file("key.properties")
 if (signingFile.exists()) signingFile.withInputStream { signingProperties.load(it) }
 
+// The Maps SDK key comes from the git-ignored config file; without it the app falls back to OpenStreetMap.
+def mapsProperties = new Properties()
+def mapsFile = rootProject.file("../config/routes.private.env")
+if (mapsFile.exists()) mapsFile.withInputStream { mapsProperties.load(it) }
+
 android {
     namespace = "com.dastak.app"
-    compileSdk = 35
+    compileSdk = 36
 
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_17
@@ -47,6 +52,7 @@ android {
         targetSdk = 35
         versionCode = flutterVersionCode.toInteger()
         versionName = flutterVersionName
+        manifestPlaceholders += [MAPS_API_KEY: mapsProperties.getProperty("GOOGLE_MAPS_ANDROID_KEY", "").trim()]
     }
 
     signingConfigs {

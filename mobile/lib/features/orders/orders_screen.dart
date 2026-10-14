@@ -1,11 +1,11 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
-import 'package:flutter_map/flutter_map.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:latlong2/latlong.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:url_launcher/url_launcher.dart';
+import '../../core/app_map.dart';
 import '../../core/location.dart';
 import '../../core/models.dart';
 import '../../core/providers.dart';
@@ -593,22 +593,14 @@ class _TrackingState extends ConsumerState<_Tracking> {
           borderRadius: BorderRadius.circular(16),
           child: SizedBox(
               height: 220,
-              child: FlutterMap(
+              child: AppMap(
                   key: ValueKey(points.length),
-                  options: MapOptions(
-                      initialCameraFit: points.length > 1
-                          ? CameraFit.coordinates(coordinates: points, padding: const EdgeInsets.all(40), maxZoom: 16)
-                          : null,
-                      initialCenter: dest,
-                      initialZoom: 14),
-                  children: [
-                    osmTiles(),
-                    MarkerLayer(markers: [
-                      if (store != null) pinMarker(store, Icons.storefront, warning, label: 'Restaurant'),
-                      pinMarker(dest, Icons.home_rounded, brandBlue, label: 'Delivery address'),
-                      if (rider != null) pinMarker(rider, Icons.delivery_dining, success, label: 'Delivery partner'),
-                    ]),
-                    osmAttribution()
+                  center: dest,
+                  fit: points,
+                  pins: [
+                    if (store != null) MapPin(store, Icons.storefront, warning, 'Restaurant'),
+                    MapPin(dest, Icons.home_rounded, brandBlue, 'Delivery address'),
+                    if (rider != null) MapPin(rider, Icons.delivery_dining, success, 'Delivery partner'),
                   ]))),
       const SizedBox(height: 6),
       Text(

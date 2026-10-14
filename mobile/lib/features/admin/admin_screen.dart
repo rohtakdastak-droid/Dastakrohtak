@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:flutter_map/flutter_map.dart';
 import 'package:go_router/go_router.dart';
 import 'package:latlong2/latlong.dart';
 import '../../core/editor.dart';
+import '../../core/app_map.dart';
 import '../../core/location.dart';
 import '../../core/models.dart';
 import '../../core/providers.dart';
@@ -420,13 +420,8 @@ class _MiniMap extends StatelessWidget {
   final LatLng point;
   const _MiniMap(this.point);
   @override
-  Widget build(BuildContext context) => FlutterMap(
-          options: MapOptions(initialCenter: point, initialZoom: 15),
-          children: [
-            osmTiles(),
-            MarkerLayer(markers: [pinMarker(point, Icons.storefront, warning, label: 'Restaurant')]),
-            osmAttribution()
-          ]);
+  Widget build(BuildContext context) =>
+      AppMap(center: point, zoom: 15, pins: [MapPin(point, Icons.storefront, warning, 'Restaurant')]);
 }
 
 class AdminPaymentsScreen extends ConsumerStatefulWidget {
