@@ -67,3 +67,13 @@ confirmed function owner `postgres` may update auth.users and delete auth identi
 Additive; orders (4), vendors (4) and products (7) unchanged. Anonymous callers are refused by
 `delete_my_account` and `set_item_portions` through the public API. Local PGlite suite: 46 checks pass.
 Google Play also requires a web link for deletion requests; that page does not exist yet.
+
+## Ola Maps routing and address search — 14 October 2026
+
+With user approval: set the OLA_MAPS_API_KEY secret, deployed place-order (v13: Google Routes
+two-wheeler, then Ola Maps directions, then straight line x1.3, each result checked against the
+straight-line distance) and the new places-search function (Ola autocomplete for signed-in users).
+Live health check returned provider "ola", 2.83 km for a 2.6 km straight-line Rohtak route.
+Unauthenticated calls to both functions return 401. Google billing account is closed, so Google
+calls currently fail and fall through to Ola. Ola search returned a wrong top result for
+"Sector 3 Rohtak" (Sector 34, SunCity); customers confirm the pin on the map.
