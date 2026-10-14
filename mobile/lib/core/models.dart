@@ -6,11 +6,14 @@ String human(String value) => value.replaceAll('_', ' ');
 
 class Account {
   final String id, name, role, status;
+  final String? phone;
   Account(Json j)
       : id = j['id'],
         name = j['display_name'] ?? '',
+        phone = j['phone'],
         role = j['role'],
         status = j['status'];
+  bool get needsDetails => role != 'admin' && (phone == null || phone!.isEmpty || name.trim().length < 2);
   bool get active => status == 'active';
 }
 

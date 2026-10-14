@@ -66,7 +66,7 @@ class _AdminScreenState extends ConsumerState<AdminScreen> {
                 physics: const NeverScrollableScrollPhysics(),
                 crossAxisSpacing: 8,
                 mainAxisSpacing: 8,
-                childAspectRatio: 1.05,
+                childAspectRatio: 1.05 / MediaQuery.textScalerOf(context).scale(1).clamp(1.0, 2.0),
                 children: [
                   for (final e in nav)
                     Material(

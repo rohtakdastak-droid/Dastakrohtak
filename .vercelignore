@@ -8,6 +8,6 @@ supabase/.temp/
 *.jks
 *.keystore
 .git/
-.claude/
+.*/
 *.log
 *.tsbuildinfo

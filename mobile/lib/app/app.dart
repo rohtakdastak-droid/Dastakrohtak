@@ -8,6 +8,7 @@ import 'package:firebase_messaging/firebase_messaging.dart';
 import '../core/providers.dart';
 import '../core/widgets.dart';
 import '../features/auth/auth_screen.dart';
+import '../features/auth/complete_profile_screen.dart';
 import '../features/customer/discovery.dart';
 import '../features/cart/cart_screen.dart';
 import '../features/checkout/checkout_screen.dart';
@@ -54,6 +55,10 @@ class _DastakAppState extends ConsumerState<DastakApp> {
           GoRoute(path: '/', builder: (c, s) => const SplashScreen()),
           GoRoute(path: '/home', builder: (c, s) => const DiscoveryScreen()),
           GoRoute(path: '/login', builder: (c, s) => const AuthScreen()),
+          GoRoute(path: '/callback', redirect: (c, s) => '/'),
+          GoRoute(
+              path: '/complete-profile',
+              builder: (c, s) => guard(const CompleteProfileScreen())),
           GoRoute(
               path: '/reset',
               builder: (c, s) => const AuthScreen(recovery: true)),
@@ -184,6 +189,10 @@ class _DastakAppState extends ConsumerState<DastakApp> {
       if (event.event == AuthChangeEvent.signedOut) router.go('/login');
       if (event.event == AuthChangeEvent.signedIn) {
         ref.read(pushServiceProvider).restore().catchError((Object _) {});
+        ref.invalidate(accountProvider);
+        // Google sign-in returns through a deep link while the login screen is still open.
+        final path = router.routerDelegate.currentConfiguration.uri.path;
+        if (path == '/login') router.go('/');
       }
     });
     if (PushService.configured) setupPush();

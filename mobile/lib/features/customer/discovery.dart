@@ -565,7 +565,7 @@ class StoreCard extends ConsumerWidget {
                       if (preview.isNotEmpty) ...[
                         const SizedBox(height: 10),
                         SizedBox(
-                            height: 128,
+                            height: 82 + 3 * 18 * MediaQuery.textScalerOf(context).scale(1).clamp(1.0, 2.0),
                             child: ListView.separated(
                                 scrollDirection: Axis.horizontal,
                                 itemCount: preview.length,
@@ -602,6 +602,8 @@ class _PreviewItem extends ConsumerWidget {
                   overflow: TextOverflow.ellipsis,
                   style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 12)),
               Text(available ? '${p['has_choices'] == true ? 'from ' : ''}${money(integer(p['price_paise']))}' : 'Sold out',
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
                   style: TextStyle(
                       fontSize: 12,
                       color: available ? context.colors.primary : danger,

@@ -28,6 +28,16 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
     super.dispose();
   }
 
+  Future<void> google() async {
+    final launched = await ref.read(repositoryProvider).client.auth.signInWithOAuth(
+        OAuthProvider.google,
+        redirectTo: 'com.dastak.app://auth/callback',
+        authScreenLaunchMode: LaunchMode.externalApplication);
+    if (!launched && mounted) {
+      toast(context, 'Could not open Google sign-in. Check your browser and try again.');
+    }
+  }
+
   Future<void> submit() async {
     if (!form.currentState!.validate()) {
       throw StateError('Fill all required fields');
@@ -59,7 +69,7 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
           email: email.text.trim(), password: password.text);
     }
     ref.invalidate(accountProvider);
-    if (mounted) context.go('/home');
+    if (mounted) context.go('/');
   }
 
   @override
@@ -90,6 +100,24 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
                                     : 'Welcome to Dastak — Local Delivery. Your neighbourhood, delivered.'),
                                 const SizedBox(height: 24),
                                 if (!widget.recovery) ...[
+                                  OutlinedButton.icon(
+                                      onPressed: google,
+                                      icon: const Text('G',
+                                          style: TextStyle(
+                                              fontSize: 20,
+                                              fontWeight: FontWeight.w900,
+                                              color: Color(0xFF4285F4))),
+                                      label: const Text('Continue with Google')),
+                                  const SizedBox(height: 12),
+                                  Row(children: const [
+                                    Expanded(child: Divider()),
+                                    Flexible(
+                                        child: Padding(
+                                            padding: EdgeInsets.symmetric(horizontal: 10),
+                                            child: Text('or use email', textAlign: TextAlign.center))),
+                                    Expanded(child: Divider()),
+                                  ]),
+                                  const SizedBox(height: 12),
                                   if (signup) ...[
                                     TextFormField(
                                         controller: displayName,

@@ -29,7 +29,10 @@ class _SplashScreenState extends ConsumerState<SplashScreen>
       ref.read(accountProvider.future).timeout(const Duration(seconds: 6)).then<Object?>((a) => a, onError: (Object _) => null),
     ]).then((results) {
       final account = results[1] as Account?;
-      if (mounted) context.go(workspaceRoute(account?.role ?? 'customer'));
+      if (!mounted) return;
+      context.go(account != null && account.needsDetails
+          ? '/complete-profile'
+          : workspaceRoute(account?.role ?? 'customer'));
     });
   }
 

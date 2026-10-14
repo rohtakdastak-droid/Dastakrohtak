@@ -9,6 +9,7 @@ import 'package:url_launcher/url_launcher.dart';
 import '../../core/location.dart';
 import '../../core/models.dart';
 import '../../core/providers.dart';
+import '../../core/repository.dart';
 import '../../core/theme.dart';
 import '../../core/widgets.dart';
 
@@ -90,12 +91,13 @@ class OrderScreen extends ConsumerStatefulWidget {
 class _OrderScreenState extends ConsumerState<OrderScreen> {
   late Future<List<dynamic>> future;
   RealtimeChannel? channel;
+  late final DastakRepository repo = ref.read(repositoryProvider);
   final utr = TextEditingController();
   @override
   void initState() {
     super.initState();
     reload();
-    channel = ref.read(repositoryProvider).watch('orders', () {
+    channel = repo.watch('orders', () {
       if (mounted) setState(reload);
     }, column: 'id', value: widget.id);
   }
@@ -121,9 +123,7 @@ class _OrderScreenState extends ConsumerState<OrderScreen> {
   @override
   void dispose() {
     utr.dispose();
-    if (channel != null) {
-      ref.read(repositoryProvider).client.removeChannel(channel!);
-    }
+    if (channel != null) repo.client.removeChannel(channel!);
     super.dispose();
   }
 
@@ -417,6 +417,7 @@ class _PartnerActions extends ConsumerStatefulWidget {
 
 class _PartnerActionsState extends ConsumerState<_PartnerActions> {
   Timer? timer;
+  late final DastakRepository repo = ref.read(repositoryProvider);
   bool sharing = false;
   String? shareProblem;
   DateTime? lastSent;
@@ -427,7 +428,7 @@ class _PartnerActionsState extends ConsumerState<_PartnerActions> {
   @override
   void dispose() {
     timer?.cancel();
-    if (sharing) ref.read(repositoryProvider).rpc('partner_stop_location').catchError((_) => null);
+    if (sharing) repo.rpc('partner_stop_location').catchError((_) => null);
     super.dispose();
   }
 

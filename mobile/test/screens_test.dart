@@ -13,6 +13,9 @@ import 'package:shared_preferences/shared_preferences.dart';
 void main() {
   testWidgets('sign-in validates before contacting backend', (tester) async {
     await tester.pumpWidget(const ProviderScope(child: MaterialApp(home: AuthScreen())));
+    expect(find.text('Continue with Google'), findsOneWidget);
+    await tester.ensureVisible(find.text('Sign in'));
+    await tester.pumpAndSettle();
     await tester.tap(find.text('Sign in'));
     await tester.pump();
     expect(find.text('Enter a valid email'), findsOneWidget);

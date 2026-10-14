@@ -113,7 +113,6 @@ class PageFrame extends StatelessWidget {
         bottomNavigationBar: !customerNav
             ? null
             : NavigationBar(
-                height: 64,
                 selectedIndex: switch (path) {
                   '/cart' => 1,
                   '/orders' => 2,
@@ -204,13 +203,16 @@ class _RemoteListState extends ConsumerState<RemoteList> {
   int request = 0;
   DateTime? updated;
   RealtimeChannel? channel;
+  SupabaseClient? realtime;
   Timer? debounce;
   @override
   void initState() {
     super.initState();
     load(true);
     if (widget.watch != null) {
-      channel = ref.read(repositoryProvider).watch(widget.watch!, () {
+      final repo = ref.read(repositoryProvider);
+      realtime = repo.client;
+      channel = repo.watch(widget.watch!, () {
         debounce?.cancel();
         debounce = Timer(const Duration(milliseconds: 400), () => load(true));
       });
@@ -241,9 +243,7 @@ class _RemoteListState extends ConsumerState<RemoteList> {
   @override
   void dispose() {
     debounce?.cancel();
-    if (channel != null) {
-      ref.read(repositoryProvider).client.removeChannel(channel!);
-    }
+    if (channel != null) realtime?.removeChannel(channel!);
     super.dispose();
   }
 
@@ -457,17 +457,14 @@ class StatTile extends StatelessWidget {
                                 fontSize: 11,
                                 fontWeight: FontWeight.w600,
                                 color: context.muted)),
-                        FittedBox(
-                            fit: BoxFit.scaleDown,
-                            alignment: Alignment.centerLeft,
-                            child: Text(value,
-                                style: TextStyle(
-                                    fontSize: 17,
-                                    fontWeight: FontWeight.w800,
-                                    color: c))),
+                        Text(value,
+                            style: TextStyle(
+                                fontSize: 17,
+                                fontWeight: FontWeight.w800,
+                                color: c)),
                         if (hint != null)
                           Text(hint!,
-                              maxLines: 1,
+                              maxLines: 2,
                               overflow: TextOverflow.ellipsis,
                               style: TextStyle(fontSize: 10, color: context.muted))
                       ])),
@@ -483,10 +480,21 @@ class StatGrid extends StatelessWidget {
   @override
   Widget build(BuildContext context) => LayoutBuilder(builder: (c, box) {
         final columns = box.maxWidth > 700 ? 4 : (box.maxWidth > 330 ? 2 : 1);
-        final width = (box.maxWidth - (columns - 1) * 10) / columns;
-        return Wrap(spacing: 10, runSpacing: 10, children: [
-          for (final child in children)
-            SizedBox(width: width, height: 74, child: child)
+        return Column(children: [
+          for (var i = 0; i < children.length; i += columns) ...[
+            if (i > 0) const SizedBox(height: 10),
+            IntrinsicHeight(
+                child: Row(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
+              for (var j = 0; j < columns; j++) ...[
+                if (j > 0) const SizedBox(width: 10),
+                Expanded(
+                    child: i + j < children.length
+                        ? ConstrainedBox(
+                            constraints: const BoxConstraints(minHeight: 74), child: children[i + j])
+                        : const SizedBox()),
+              ]
+            ])),
+          ]
         ]);
       });
 }
@@ -561,12 +569,17 @@ class StatusChip extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final c = statusColor(status);
+    // Capped width so a long label wraps instead of pushing its row off screen.
     return Container(
+        constraints: const BoxConstraints(maxWidth: 130),
         padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
         decoration: BoxDecoration(
             color: c.withValues(alpha: context.dark ? 0.22 : 0.12),
-            borderRadius: BorderRadius.circular(999)),
+            borderRadius: BorderRadius.circular(12)),
         child: Text(label ?? statusLabel(status),
+            maxLines: 2,
+            overflow: TextOverflow.ellipsis,
+            textAlign: TextAlign.center,
             style: TextStyle(
                 color: c, fontWeight: FontWeight.w700, fontSize: 12)));
   }

@@ -10,7 +10,6 @@ dist-ssr
 !.vscode/extensions.json
 .idea
 coverage
-.claude
 
 .vercel
 .env*.local

@@ -182,10 +182,16 @@ class _VendorStoreScreenState extends ConsumerState<VendorStoreScreen> {
               const SectionTitle('Popular items'),
               Panel([
                 for (final p in popular)
-                  Row(children: [
-                    Expanded(child: Text('${p['name']}')),
-                    Text('${p['quantity']} sold • ${money(integer(p['sales_paise']))}', style: TextStyle(color: context.muted)),
-                  ])
+                  Padding(
+                      padding: const EdgeInsets.symmetric(vertical: 4),
+                      child: Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                        Expanded(flex: 3, child: Text('${p['name']}')),
+                        const SizedBox(width: 8),
+                        Expanded(
+                            flex: 2,
+                            child: Text('${p['quantity']} sold\n${money(integer(p['sales_paise']))}',
+                                textAlign: TextAlign.end, style: TextStyle(color: context.muted))),
+                      ]))
               ]),
             ],
             if (deliveries.isNotEmpty) ...[

@@ -103,6 +103,15 @@ void main() {
         'a,"b,c","say ""hi""","x\ny",');
   });
 
+  test('accounts without a name or mobile number are asked to complete their profile', () {
+    Account a(String? name, String? phone, [String role = 'customer']) =>
+        Account({'id': 'u', 'display_name': name, 'phone': phone, 'role': role, 'status': 'active'});
+    expect(a('Ravi', null).needsDetails, isTrue);
+    expect(a('', '9876543210').needsDetails, isTrue);
+    expect(a('Ravi', '9876543210').needsDetails, isFalse);
+    expect(a(null, null, 'admin').needsDetails, isFalse);
+  });
+
   test('status labels are human readable', () {
     expect(statusLabel('pending_verification'), 'Pending verification');
     expect(statusLabel('out_for_delivery'), 'Out for delivery');
